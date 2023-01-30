@@ -7,8 +7,6 @@ class BB:
         self._instr_list: list[int] = []
         self._var_instr_map: dict[int, int] = dict()
 
-    # TODO: add funcs to get references of vars and instrs
-
     def debug(self) -> None:
         print(repr(self))
 

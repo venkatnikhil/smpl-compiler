@@ -1,6 +1,9 @@
+from app.tokens import OpCodeEnum
+
+
 class ConstInstrNode:
-    def __init__(self, opcode: str, instr_num: int, val: int) -> None:
-        self.opcode: str = opcode  # TODO: this should always be "CONST"
+    def __init__(self, instr_num: int, val: int) -> None:
+        self.opcode: str = OpCodeEnum.CONST.value
         self.val: int = val
         self.instr_num: int = instr_num
 
