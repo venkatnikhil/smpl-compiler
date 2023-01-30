@@ -3,5 +3,5 @@ main {
     let b <- 10 + 20 - 10;
     let c <- b;
     let d <- c + c;
-    let e <- b + c;
+    let e <- b + c
 }.

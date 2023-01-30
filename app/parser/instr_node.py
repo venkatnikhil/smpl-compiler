@@ -1,25 +1,25 @@
 class ConstInstrNode:
-    def __init__(self, opcode, instr_num, val):
-        self.opcode = opcode
-        self.val = val
-        self.instr_num = instr_num
+    def __init__(self, opcode: str, instr_num: int, val: int) -> None:
+        self.opcode: str = opcode  # TODO: this should always be "CONST"
+        self.val: int = val
+        self.instr_num: int = instr_num
 
-    def debug(self):
+    def debug(self) -> None:
         print(repr(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "ConstInstrNode<(%r), %s, #%r>" % (self.instr_num, self.opcode, self.val)
 
 
 class OpInstrNode:
-    def __init__(self, opcode, instr_num, left, right):
-        self.opcode = opcode
-        self.left = left
-        self.right = right
-        self.instr_num = instr_num
+    def __init__(self, opcode: str, instr_num: int, left: int, right: int) -> None:
+        self.opcode: str = opcode
+        self.left: int = left
+        self.right: int = right
+        self.instr_num: int = instr_num
 
-    def debug(self):
+    def debug(self) -> None:
         print(repr(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "OpInstrNode<(%r), %s, (%r), (%r)>" % (self.instr_num, self.opcode, self.left, self.right)
