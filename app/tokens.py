@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 DIGIT = {str(i) for i in range(0, 10)}
 LETTER = {chr(i) for i in range(ord("a"), ord("z") + 1)}.union({chr(i) for i in range(ord("A"), ord("Z") + 1)})
 
@@ -50,4 +53,71 @@ DEFAULT_TOKENS = {
     'end of file': 255
 }
 
-EOF = list(DEFAULT_TOKENS.keys())[-1]
+END_OF_FILE = list(DEFAULT_TOKENS.keys())[-1]
+
+
+class TokenEnum(Enum):
+    TIMES = 1
+    DIV = 2
+    PLUS = 11
+    MINUS = 12
+    EQL = 20
+    NEQ = 21
+    LSS = 22
+    GEQ = 23
+    LEQ = 24
+    GTR = 25
+    PERIOD = 30
+    COMMA = 31
+    OPEN_BRACKET = 32
+    CLOSE_BRACKET = 34
+    CLOSE_PAREN = 35
+    BECOMES = 40
+    THEN = 41
+    DO = 42
+    OPEN_PAREN = 50
+    NUMBER = 60
+    IDENTIFIER = 61
+    SEMI = 70
+    END = 80
+    OD = 81
+    FI = 82
+    ELSE = 90
+    LET = 100
+    CALL = 101
+    IF = 102
+    WHILE = 103
+    RETURN = 104
+    VAR = 110
+    ARR = 111
+    VOID = 112
+    FUNC = 113
+    PROC = 114
+    BEGIN = 150
+    MAIN = 200
+    EOF = 255
+    ERROR = 0
+
+
+class OpCodeEnum(Enum):
+    CONST = "const"
+    ADD = "add"
+    SUB = "sub"
+    MUL = "mul"
+    DIV = "div"
+    CMP = "cmp"
+    ADDA = "adda"
+    LOAD = "load"
+    STORE = "store"
+    PHI = "phi"
+    END = "end"
+    BRA = "bra"
+    BNE = "bne"
+    BEQ = "beq"
+    BLE = "ble"
+    BLT = "blt"
+    BGE = "bge"
+    BGT = "bgt"
+    READ = "read"
+    WRITE = "write"
+    WRITENL = "writeNL"
