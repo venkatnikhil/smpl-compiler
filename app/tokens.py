@@ -121,3 +121,14 @@ class OpCodeEnum(Enum):
     READ = "read"
     WRITE = "write"
     WRITENL = "writeNL"
+    EMPTY = "<empty>"
+
+
+RELOP_TOKEN_OPCODE = {
+    TokenEnum.EQL.value: OpCodeEnum.BNE.value,
+    TokenEnum.NEQ.value: OpCodeEnum.BEQ.value,
+    TokenEnum.LSS.value: OpCodeEnum.BGE.value,
+    TokenEnum.GEQ.value: OpCodeEnum.BLT.value,
+    TokenEnum.LEQ.value: OpCodeEnum.BGT.value,
+    TokenEnum.GTR.value: OpCodeEnum.BLE.value
+}

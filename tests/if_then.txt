@@ -1,7 +1,7 @@
 main {
     let a <- 10;
-    let b <- 10 + 20 - 10;
-    let c <- b;
-    let d <- c + c;
-    let e <- b + c
+    if a < 11
+    then
+        let f <- 15 + 11;
+    fi
 }.

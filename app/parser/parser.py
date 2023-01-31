@@ -1,9 +1,9 @@
 from app.tokenizer import Tokenizer
-from app.tokens import TokenEnum, OpCodeEnum
+from app.tokens import TokenEnum, OpCodeEnum, RELOP_TOKEN_OPCODE
 from app.error_handling import CustomSyntaxError
 from app.parser.instr_node import ConstInstrNode, OpInstrNode
 from app.parser.cfg import CFG
-from typing import Optional
+from typing import Optional, Union
 
 
 class Parser:
@@ -17,7 +17,7 @@ class Parser:
         # get the next token
         self.sym = self.tokenizer.get_next()
 
-    def __check_token(self, expected: int) -> None:
+    def __check_token(self, expected: Union[int, set[int]]) -> None:
         # check if the current token matches the expected token; raise error otherwise
         if isinstance(expected, int):
             if self.sym != expected:  # does not match specific token
@@ -46,13 +46,13 @@ class Parser:
         self.parse_designator(rhs=False)
         self.__check_token(TokenEnum.BECOMES.value)
         instr_num: int = self.parse_expression()
-        self.cfg.curr_bb.update_var_instr_map(ident, instr_num)  # TODO: fix this
+        self.cfg.curr_bb.update_var_instr_map(ident, instr_num)
 
     def parse_designator(self, rhs: bool = True) -> Optional[int]:
         ident = self.tokenizer.id
         self.__check_token(TokenEnum.IDENTIFIER.value)
         if rhs:  # get instr num only when it is on RHS
-            return self.cfg.curr_bb.get_instr_num(ident)  # TODO: fix this
+            return self.cfg.curr_bb.get_var_instr_num(ident)
 
     def parse_expression(self) -> int:
         l_instr: int = self.parse_term()
@@ -89,7 +89,7 @@ class Parser:
                                                                              val=self.tokenizer.number))
 
         self.__next_token()
-        return self.cfg.const_bb.get_instr_num(self.tokenizer.number)
+        return self.cfg.const_bb.get_var_instr_num(self.tokenizer.number)
 
     def parse_factor(self) -> Optional[int]:
         if self.sym == TokenEnum.NUMBER.value:
@@ -97,14 +97,46 @@ class Parser:
         else:
             return self.parse_designator()
 
+    def parse_relop(self) -> OpCodeEnum:
+        op: int = self.sym
+        self.__check_token(set(RELOP_TOKEN_OPCODE.keys()))
+        return RELOP_TOKEN_OPCODE[op]  # check which branch instr
+
+    def parse_relation(self) -> int:
+        l_instr: int = self.parse_expression()
+        opcode: OpCodeEnum = self.parse_relop()
+        r_instr: int = self.parse_expression()
+        cmp_instr: int = self.cfg.build_instr_node(OpInstrNode, OpCodeEnum.CMP.value, left=l_instr, right=r_instr)
+        br_instr: int = self.cfg.build_instr_node(OpInstrNode, opcode, left=cmp_instr, right=None)
+        return br_instr
+
+    def parse_if(self):
+        # TODO: 1. handle else
+
+        self.__check_token(TokenEnum.IF.value)
+        br_instr: int = self.parse_relation()
+        self.__check_token(TokenEnum.THEN.value)
+        if_bb: int = self.cfg.curr_bb.bb_num
+        then_bb: int = self.cfg.create_bb([if_bb])
+        self.parse_stat_sequence()
+        else_bb: int = self.cfg.create_bb([if_bb])
+        self.cfg.update_instr(br_instr, {"right": self.cfg.curr_bb.get_first_instr_num()})
+        self.__check_token(TokenEnum.FI.value)
+        join_bb: int = self.cfg.create_bb([then_bb, else_bb], [if_bb])
+
     def parse_statement(self) -> None:
-        self.parse_assignment()
+        if self.sym == TokenEnum.LET.value:
+            self.parse_assignment()
+        elif self.sym == TokenEnum.IF.value:
+            self.parse_if()
 
     def parse_stat_sequence(self) -> None:
         self.parse_statement()
         if self.sym == TokenEnum.SEMI.value:
             self.__next_token()
             while self.sym != TokenEnum.END.value:
+                if self.sym in [TokenEnum.FI.value]:
+                    return
                 self.parse_statement()
                 if self.sym == TokenEnum.SEMI.value:
                     self.__next_token()
