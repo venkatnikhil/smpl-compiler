@@ -9,6 +9,10 @@ _varname -> private var
 
 __funcName() -> private func
 
+mark incomplete tasks as "# TODO: "
+
+add asserts wherever possible
+
 ### Class
 
 define **&#95;&#95;repr&#95;&#95;** for each class 
