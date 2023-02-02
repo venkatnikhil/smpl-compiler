@@ -12,7 +12,7 @@ class BB:
         print(repr(self))
 
     def update_instr_list(self, instr: int) -> None:
-        # TODO: should we check if instr_num is already in the list? check copy_prop_test for info
+        # TODO: should we check if instr_num is already in the list? check copy_prop_test for info subexpr elimination
         self._instr_list.append(instr)
 
     def update_var_instr_map(self, ident: int, instr_num: int) -> None:

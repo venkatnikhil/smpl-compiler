@@ -116,8 +116,6 @@ class Parser:
         return br_instr
 
     def parse_if(self) -> None:
-        # TODO: 1. handle else
-
         self.__check_token(TokenEnum.IF.value)
         br_instr: int = self.parse_relation()
         self.__check_token(TokenEnum.THEN.value)
