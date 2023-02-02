@@ -16,6 +16,7 @@ class CFG:
         self._successors: list[list[int]] = list()
         self._dom_predecessors: list[int] = list()
         self._bb_map: list[BB] = list()
+        self.declared_vars: set[int] = set()
         self.__initialize_cfg()
 
     def get_bb(self, bb_num: int) -> BB:

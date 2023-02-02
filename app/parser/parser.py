@@ -32,6 +32,8 @@ class Parser:
 
     def parse_computation(self) -> None:
         self.__check_token(TokenEnum.MAIN.value)
+        if self.sym == TokenEnum.VAR.value:
+            self.parse_var_decl()
         self.__check_token(TokenEnum.BEGIN.value)
         self.parse_stat_sequence()
         self.__check_token(TokenEnum.END.value)
@@ -39,7 +41,16 @@ class Parser:
         self.__check_token(TokenEnum.EOF.value)
 
     def parse_var_decl(self) -> None:
-        pass
+        self.__check_token(TokenEnum.VAR.value)
+        self.__check_token(TokenEnum.IDENTIFIER.value)
+        self.cfg.declared_vars.add(self.tokenizer.id)
+        while self.sym == TokenEnum.COMMA.value:
+            self.__next_token()
+            self.__check_token(TokenEnum.IDENTIFIER.value)
+            if self.tokenizer.id in self.cfg.declared_vars:
+                raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once.")
+            self.cfg.declared_vars.add(self.tokenizer.id)
+        self.__check_token(TokenEnum.SEMI.value)
 
     def parse_assignment(self) -> None:
         self.__check_token(TokenEnum.LET.value)
@@ -49,9 +60,14 @@ class Parser:
         instr_num: int = self.parse_expression()
         self.cfg.curr_bb.update_var_instr_map(ident, instr_num)
 
-    def parse_designator(self, rhs: bool = True) -> Optional[int]:
-        ident = self.tokenizer.id
+    def parse_identifier(self) -> int:
+        if self.tokenizer.id not in self.cfg.declared_vars:
+            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared!")
         self.__check_token(TokenEnum.IDENTIFIER.value)
+        return self.tokenizer.id
+
+    def parse_designator(self, rhs: bool = True) -> Optional[int]:
+        ident = self.parse_identifier()
         if rhs:  # get instr num only when it is on RHS
             return self.cfg.curr_bb.get_var_instr_num(ident)
 
