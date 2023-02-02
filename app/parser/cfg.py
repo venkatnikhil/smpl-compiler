@@ -12,32 +12,32 @@ class CFG:
         self._instr_graph: InstrGraph = InstrGraph()
         self.bb_num: int = 0
         self.curr_bb: Optional[BB] = None
-        self._predecessors: dict[int, list[int]] = dict()
-        self._successors: dict[int, list[int]] = dict()
-        self._dom_predecessors: dict[int, list[int]] = dict()
-        self._bb_map: dict[int, BB] = dict()
+        self._predecessors: list[list[int]] = list()
+        self._successors: list[list[int]] = list()
+        self._dom_predecessors: list[int] = list()
+        self._bb_map: list[BB] = list()
         self.__initialize_cfg()
 
     def get_bb(self, bb_num: int) -> BB:
         return self._bb_map[bb_num]
 
-    def update_bb_map(self, bb_num: int, bb_obj: BB) -> None:
-        self._bb_map[bb_num] = bb_obj
+    def update_bb_map(self, bb_obj: BB) -> None:
+        self._bb_map.append(bb_obj)
 
     def update_predecessors(self, bb_num: int, other: list[int]) -> None:
-        if bb_num not in self._predecessors:
-            self._predecessors[bb_num] = []
+        if len(self._predecessors) == bb_num:
+            self._predecessors.append([])
         self._predecessors[bb_num].extend(other)
 
     def update_successors(self, bb_num: int, other: list[int]) -> None:
-        if bb_num not in self._successors:
-            self._successors[bb_num] = []
+        if len(self._successors) == bb_num:
+            self._successors.append([])
         self._successors[bb_num].extend(other)
 
     def update_dom_predecessors(self, bb_num: int, other: list[int]) -> None:
-        if bb_num not in self._dom_predecessors:
-            self._dom_predecessors[bb_num] = []
-        self._dom_predecessors[bb_num].extend(other)
+        if len(self._dom_predecessors) == bb_num:
+            self._dom_predecessors.append(-1)
+        self._dom_predecessors[bb_num] = other[0] if other else -1
 
     def __initialize_cfg(self) -> None:
         bb0: int = self.create_bb([])
@@ -82,7 +82,7 @@ class CFG:
 
         new_bb: BB = BB(self.bb_num)
         self.curr_bb = new_bb
-        self.update_bb_map(self.bb_num, self.curr_bb)
+        self.update_bb_map(self.curr_bb)
         self.update_predecessors(self.bb_num, predecessors)
         self.update_dom_predecessors(self.bb_num, dom_predecessors)
         self.update_successors(self.bb_num, [])
@@ -103,16 +103,16 @@ class CFG:
         instr.update_instr(change_dict)
 
     def debug(self) -> None:
-        for bb in self._bb_map.values():
+        for bb in self._bb_map:
             bb.debug()
         print("\nPredecessors:")
-        for bb_num, bb_list in self._predecessors.items():
+        for bb_num, bb_list in enumerate(self._predecessors):
             print(f"BB{bb_num}: {bb_list}")
 
         print("\nSuccessors:")
-        for bb_num, bb_list in self._successors.items():
+        for bb_num, bb_list in enumerate(self._successors):
             print(f"BB{bb_num}: {bb_list}")
 
         print("\nDom Predecessors:")
-        for bb_num, bb_list in self._dom_predecessors.items():
-            print(f"BB{bb_num}: {bb_list}")
+        for bb_num, bb in enumerate(self._dom_predecessors):
+            print(f"BB{bb_num}: {bb}")

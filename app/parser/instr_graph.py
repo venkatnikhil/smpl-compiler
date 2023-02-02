@@ -6,7 +6,7 @@ from app.tokens import OpCodeEnum
 
 class InstrGraph:
     def __init__(self) -> None:
-        self._instr_map: dict[int, InstrNodeActual] = dict()
+        self._instr_map: list[InstrNodeActual] = [EmptyInstrNode(0)]
         self._curr_instr: int = 1
 
     def check_if_instr_exists(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: int, **kwargs) -> int:
@@ -15,7 +15,7 @@ class InstrGraph:
                                                                                 EmptyInstrNode)):
             return -1
 
-        for node in self._instr_map.values():
+        for node in self._instr_map:
             if isinstance(node, node_type):
                 if node.equals(opcode, **kwargs):
                     return node.instr_num
@@ -46,7 +46,10 @@ class InstrGraph:
         elif node_type is SingleOpInstrNode:
             node = SingleOpInstrNode(opcode=opcode, instr_num=instr_num, left=kwargs["left"])
 
-        self._instr_map[instr_num] = node  # instr num to **actual** instr node map
+        if len(self._instr_map) == instr_num:
+            self._instr_map.append(node)
+        else:
+            self._instr_map[instr_num] = node  # instr num to **actual** instr node map
 
         if provided is None:
             self._curr_instr += 1
@@ -57,5 +60,5 @@ class InstrGraph:
         return self._instr_map[instr_num]
 
     def debug(self) -> None:
-        for node in self._instr_map.values():
+        for node in self._instr_map:
             node.debug()
