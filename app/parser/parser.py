@@ -26,7 +26,7 @@ class Parser:
             if self.sym not in expected:  # does not match **any** of the expected tokens
                 raise CustomSyntaxError(message="error")
 
-        if self.sym == TokenEnum.PERIOD.value:  # end of input, simply return
+        if self.sym == TokenEnum.EOF.value:  # end of input, simply return
             return
         self.__next_token()  # move onto next token
 
@@ -36,6 +36,7 @@ class Parser:
         self.parse_stat_sequence()
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
+        self.__check_token(TokenEnum.EOF.value)
 
     def parse_var_decl(self) -> None:
         pass
@@ -144,14 +145,5 @@ class Parser:
         self.parse_statement()
         if self.sym == TokenEnum.SEMI.value:
             self.__next_token()
-            # TODO: fix semi colon handling
-            while self.sym != TokenEnum.END.value:
-                if self.sym in [TokenEnum.FI.value, TokenEnum.ELSE.value]:
-                    return
-                self.parse_statement()
-                if self.sym == TokenEnum.SEMI.value:
-                    self.__next_token()
-                elif self.sym == TokenEnum.END.value:
-                    return
-                else:
-                    raise CustomSyntaxError(message="error")
+            if self.sym not in [TokenEnum.FI.value, TokenEnum.ELSE.value, TokenEnum.END.value, TokenEnum.OD.value]:
+                self.parse_stat_sequence()

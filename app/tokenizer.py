@@ -63,7 +63,8 @@ class Tokenizer:
         
         # Check for end of file
         if self._sym == END_OF_FILE:
-            raise CustomSyntaxError(message=f"Reached end before finding '.'")
+            # raise CustomSyntaxError(message=f"Reached end before finding '.'")
+            return token_map[END_OF_FILE]
     
         # For when the token starts with a letter
         if self._sym in LETTER:
