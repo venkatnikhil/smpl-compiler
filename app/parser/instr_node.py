@@ -15,7 +15,7 @@ class ConstInstrNode:
         return self.val == val
 
     def __repr__(self) -> str:
-        return "ConstInstrNode<(%r), %s, #%r>" % (self.instr_num, self.opcode, self.val)
+        return "%r: ConstInstrNode <%s, #%r>" % (self.instr_num, self.opcode, self.val)
 
 
 class OpInstrNode:
@@ -39,7 +39,7 @@ class OpInstrNode:
             setattr(self, attr, val)
 
     def __repr__(self) -> str:
-        return "OpInstrNode<(%r), %s, (%r), (%r)>" % (self.instr_num, self.opcode, self.left, self.right)
+        return "%r: OpInstrNode <%s, (%r), (%r)>" % (self.instr_num, self.opcode, self.left, self.right)
 
 
 class EmptyInstrNode:
@@ -51,4 +51,27 @@ class EmptyInstrNode:
         print(repr(self))
 
     def __repr__(self) -> str:
-        return "EmptyInstrNode<(%r), %s>" % (self.instr_num, self.opcode)
+        return "%r: EmptyInstrNode <%s>" % (self.instr_num, self.opcode)
+
+
+class SingleOpInstrNode:
+    def __init__(self, opcode: OpCodeEnum, instr_num: int, left: int) -> None:
+        self.opcode: OpCodeEnum = opcode
+        self.left: int = left
+        self.instr_num: int = instr_num
+
+    def debug(self) -> None:
+        print(repr(self))
+
+    def equals(self, opcode: str, left: int) -> bool:
+        return self.opcode == opcode and self.left == left
+
+    def update_instr(self, change_dict: dict[str, int]) -> None:
+        assert "opcode" not in change_dict, "cannot change opcode of an instr"
+
+        for attr, val in change_dict.items():
+            assert hasattr(self, attr), f"instr has no attribute named: {attr}"
+            setattr(self, attr, val)
+
+    def __repr__(self) -> str:
+        return "%r: SingleOpInstrNode <%s, (%r)>" % (self.instr_num, self.opcode, self.left)

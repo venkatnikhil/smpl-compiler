@@ -44,9 +44,11 @@ class CFG:
         bb1: int = self.create_bb([bb0], [])
         self.const_bb = self.get_bb(bb0)
 
-    def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, bb: Optional[BB] = None, **kwargs) -> int:
+    def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, bb: Optional[int] = None, **kwargs) -> int:
         if bb is None:
             bb = self.curr_bb
+        else:
+            bb = self.get_bb(bb)
         instr_num: Optional[int] = bb.get_first_instr_num()
         if instr_num is not None:
             if not isinstance(self._instr_graph.get_instr(instr_num), EmptyInstrNode):
@@ -68,7 +70,7 @@ class CFG:
 
         res: list[int] = list(res)
         if len(res) > 1:
-            instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb, left=res[0], right=res[1])
+            instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0], right=res[1])
         else:
             instr_num = res[0]
 

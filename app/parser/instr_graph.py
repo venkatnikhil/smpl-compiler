@@ -1,4 +1,4 @@
-from app.parser.instr_node import ConstInstrNode, OpInstrNode, EmptyInstrNode
+from app.parser.instr_node import ConstInstrNode, OpInstrNode, EmptyInstrNode, SingleOpInstrNode
 from app.custom_types import InstrNodeActual, InstrNodeType
 from typing import Optional
 from app.tokens import OpCodeEnum
@@ -43,6 +43,8 @@ class InstrGraph:
             node = OpInstrNode(opcode=opcode, instr_num=instr_num, left=kwargs["left"], right=kwargs["right"])
         elif node_type is EmptyInstrNode:
             node = EmptyInstrNode(instr_num=instr_num)
+        elif node_type is SingleOpInstrNode:
+            node = SingleOpInstrNode(opcode=opcode, instr_num=instr_num, left=kwargs["left"])
 
         self._instr_map[instr_num] = node  # instr num to **actual** instr node map
 
