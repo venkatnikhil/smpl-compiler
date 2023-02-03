@@ -4,6 +4,7 @@ from app.parser.instr_graph import InstrGraph
 from app.parser.instr_node import OpInstrNode, EmptyInstrNode
 from app.tokens import OpCodeEnum
 from typing import Optional
+from app.tokenizer import Tokenizer
 
 
 class CFG:
@@ -57,23 +58,33 @@ class CFG:
             else:
                 bb.remove_empty_instr()
         instr_num: int = self._instr_graph.build_instr_node(node_type, opcode, instr_num, **kwargs)
-        bb.update_instr_list(instr_num)
+        bb.update_instr_list(instr_num, is_phi=opcode == OpCodeEnum.PHI.value)
         return instr_num
 
-    def get_var_instr_num(self, bb: BB, ident: int) -> int:
+    def get_var_instr_num(self, bb: BB, ident: int, visited_bb: set[int]) -> Optional[int]:
+        if bb.bb_num in visited_bb:
+            return
+        visited_bb.add(bb.bb_num)
         if bb.check_instr_exists(ident):
             return bb.get_var_instr_num(ident)
 
         search_space: list[int] = self._predecessors[bb.bb_num]
-        res: set[int] = set()
+        res: list[int] = list()
         for node in search_space:
-            res.add(self.get_var_instr_num(self._bb_map[node], ident))
+            instr = self.get_var_instr_num(self._bb_map[node], ident, visited_bb)
+            if instr is not None:
+                res.append(instr)
 
+        instr_num: Optional[int] = None
         res: list[int] = list(res)
-        if len(res) > 1:
-            instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0], right=res[1])
-        else:
+        if len(res) > 1 and res[0] != res[1]:
+            instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0],
+                                              right=res[1])
+        elif len(set(res)) == 1:
             instr_num = res[0]
+        elif bb.bb_num == 0:
+            print(f"Warning!: {Tokenizer.id2string(ident)} referenced before assignment!")
+            instr_num = 0  # uninitialized vars
 
         return instr_num
 

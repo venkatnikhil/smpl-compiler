@@ -6,13 +6,14 @@ from app.tokens import OpCodeEnum
 
 class InstrGraph:
     def __init__(self) -> None:
-        self._instr_map: list[InstrNodeActual] = [EmptyInstrNode(0)]
+        self._instr_map: list[InstrNodeActual] = [ConstInstrNode(0, 0)]
         self._curr_instr: int = 1
 
     def check_if_instr_exists(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: int, **kwargs) -> int:
         # TODO: update logic
-        if node_type is EmptyInstrNode or (instr_num is not None and isinstance(self._instr_map[instr_num],
-                                                                                EmptyInstrNode)):
+        if node_type is EmptyInstrNode or node_type is ConstInstrNode or (instr_num is not None and
+                                                                          isinstance(self._instr_map[instr_num],
+                                                                                     EmptyInstrNode)):
             return -1
 
         for node in self._instr_map:

@@ -69,7 +69,7 @@ class Parser:
     def parse_designator(self, rhs: bool = True) -> Optional[int]:
         ident = self.parse_identifier()
         if rhs:  # get instr num only when it is on RHS
-            return self.cfg.curr_bb.get_var_instr_num(ident)
+            return self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
 
     def parse_expression(self) -> int:
         l_instr: int = self.parse_term()
@@ -148,8 +148,10 @@ class Parser:
         self.cfg.update_instr(br_instr, {"right": self.cfg.get_bb(else_bb).get_first_instr_num()})
         self.__check_token(TokenEnum.FI.value)
         join_bb: int = self.cfg.create_bb([l_parent, r_parent], [if_bb])
-        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, then_bb,
-                                  left=self.cfg.get_bb(join_bb).get_first_instr_num())
+        # self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
+        #                           left=self.cfg.get_bb(join_bb).get_first_instr_num())
+        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
+                                  left=join_bb)
 
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:
