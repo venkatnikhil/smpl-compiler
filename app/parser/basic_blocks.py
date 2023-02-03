@@ -1,6 +1,7 @@
 from app.tokenizer import Tokenizer
+from app.tokens import OpCodeEnum
 from typing import Optional
-from collections import deque
+from collections import deque, defaultdict
 
 
 class BB:
@@ -8,11 +9,16 @@ class BB:
         self.bb_num: int = bb_num
         self._instr_list: deque[int] = deque([])
         self._var_instr_map: dict[int, int] = dict()
+        self.opcode_instr_order: dict[OpCodeEnum, list[int]] = defaultdict(list)
 
     def debug(self) -> None:
         print(repr(self))
 
+    def update_opcode_instr_order(self, opcode: OpCodeEnum, instr: int) -> None:
+        self.opcode_instr_order[opcode].append(instr)
+
     def update_instr_list(self, instr: int, is_phi: bool = False) -> None:
+        # NOTE: always use update_opcode_instr_order and this func in conjunction
         # TODO: should we check if instr_num is already in the list? check copy_prop_test for info subexpr elimination
         if is_phi:
             self._instr_list.appendleft(instr)

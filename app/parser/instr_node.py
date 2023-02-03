@@ -12,7 +12,7 @@ class ConstInstrNode:
         print(repr(self))
 
     def equals(self, opcode: OpCodeEnum, val: int) -> bool:
-        return self.val == val
+        return self.opcode == opcode and self.val == val
 
     def __repr__(self) -> str:
         return "%r: ConstInstrNode <%s, #%r>" % (self.instr_num, self.opcode, self.val)

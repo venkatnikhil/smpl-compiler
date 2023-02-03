@@ -9,19 +9,21 @@ class InstrGraph:
         self._instr_map: list[InstrNodeActual] = [ConstInstrNode(0, 0)]
         self._curr_instr: int = 1
 
-    def check_if_instr_exists(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: int, **kwargs) -> int:
-        # TODO: update logic
-        if node_type is EmptyInstrNode or node_type is ConstInstrNode or (instr_num is not None and
-                                                                          isinstance(self._instr_map[instr_num],
-                                                                                     EmptyInstrNode)):
-            return -1
+    # def check_if_instr_exists(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: int, **kwargs) -> int:
+    #     # TODO: update logic
+    #     # if node_type is EmptyInstrNode or node_type is ConstInstrNode or (instr_num is not None and
+    #     #                                                                   isinstance(self._instr_map[instr_num],
+    #     #                                                                              EmptyInstrNode)):
+    #
+    #     if instr_num is not None and isinstance(self._instr_map[instr_num], EmptyInstrNode):
+    #         return -1
+    #
+    #     # for node in self._instr_map:
+    #     #     if isinstance(node, node_type):
+    #     #         if node.equals(opcode, **kwargs):
+    #     #             return node.instr_num
 
-        for node in self._instr_map:
-            if isinstance(node, node_type):
-                if node.equals(opcode, **kwargs):
-                    return node.instr_num
-
-        return -1
+        # return -1
 
     def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: Optional[int], **kwargs):
         provided = instr_num
@@ -34,9 +36,9 @@ class InstrGraph:
         # what happens if there is an exisiting instr same as the instr to be built (suppose cmp a < 1)
         # 1. do we create another instr node?
         # 2. do we reuse the previous one? if yes, is the prev instr added to the current bb instr_list?
-        existing_instr = self.check_if_instr_exists(node_type, opcode, provided, **kwargs)
-        if existing_instr != -1:
-            return existing_instr
+        # existing_instr = self.check_if_instr_exists(node_type, opcode, provided, **kwargs)
+        # if existing_instr != -1:
+        #     return existing_instr
 
         if node_type is ConstInstrNode:
             node = ConstInstrNode(instr_num=instr_num, val=kwargs["val"])

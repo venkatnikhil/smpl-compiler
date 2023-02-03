@@ -2,7 +2,7 @@ from app.custom_types import InstrNodeType, InstrNodeActual
 from app.parser.basic_blocks import BB
 from app.parser.instr_graph import InstrGraph
 from app.parser.instr_node import OpInstrNode, EmptyInstrNode
-from app.tokens import OpCodeEnum
+from app.tokens import OpCodeEnum, RELOP_TOKEN_OPCODE
 from typing import Optional
 from app.tokenizer import Tokenizer
 
@@ -18,6 +18,9 @@ class CFG:
         self._dom_predecessors: list[int] = list()
         self._bb_map: list[BB] = list()
         self.declared_vars: set[int] = set()
+        self.excluded_instrs: set[OpCodeEnum] = {RELOP_TOKEN_OPCODE.values()}.union(
+            {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value})
+
         self.__initialize_cfg()
 
     def get_bb(self, bb_num: int) -> BB:
@@ -46,19 +49,39 @@ class CFG:
         bb1: int = self.create_bb([bb0], [])
         self.const_bb = self.get_bb(bb0)
 
+    def get_existing_instr(self, bb: BB, opcode: OpCodeEnum, **kwargs) -> Optional[int]:
+        instrs: list[int] = bb.opcode_instr_order[opcode]
+
+        for instr in instrs:
+            if self._instr_graph.get_instr(instr).equals(opcode, **kwargs):
+                return instr
+
+        dom_pred = self._dom_predecessors[bb.bb_num]
+        if dom_pred == -1:
+            return None
+
+        return self.get_existing_instr(self.get_bb(dom_pred), opcode, **kwargs)
+
     def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, bb: Optional[int] = None, **kwargs) -> int:
         if bb is None:
             bb = self.curr_bb
         else:
             bb = self.get_bb(bb)
+
+        if opcode not in self.excluded_instrs:
+            existing_instr = self.get_existing_instr(bb, opcode, **kwargs)
+            if existing_instr is not None:
+                return existing_instr
+
         instr_num: Optional[int] = bb.get_first_instr_num()
-        if instr_num is not None:
+        if instr_num is not None:  # there is at least 1 instr present in BB
             if not isinstance(self._instr_graph.get_instr(instr_num), EmptyInstrNode):
-                instr_num = None
+                instr_num = None  # first instr is not an Empty instr; create new instr node with new instr num
             else:
-                bb.remove_empty_instr()
+                bb.remove_empty_instr()  # first instr is Empty instr; create new instr node with **same** instr num
         instr_num: int = self._instr_graph.build_instr_node(node_type, opcode, instr_num, **kwargs)
         bb.update_instr_list(instr_num, is_phi=opcode == OpCodeEnum.PHI.value)
+        bb.update_opcode_instr_order(opcode, instr_num)
         return instr_num
 
     def get_var_instr_num(self, bb: BB, ident: int, visited_bb: set[int]) -> Optional[int]:
