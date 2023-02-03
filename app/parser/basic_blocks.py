@@ -19,7 +19,6 @@ class BB:
 
     def update_instr_list(self, instr: int, is_phi: bool = False) -> None:
         # NOTE: always use update_opcode_instr_order and this func in conjunction
-        # TODO: should we check if instr_num is already in the list? check copy_prop_test for info subexpr elimination
         if is_phi:
             self._instr_list.appendleft(instr)
         else:

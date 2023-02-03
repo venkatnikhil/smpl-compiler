@@ -103,6 +103,7 @@ class CFG:
         if len(res) > 1 and res[0] != res[1]:
             instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0],
                                               right=res[1])
+            bb.update_var_instr_map(ident, instr_num)
         elif len(set(res)) == 1:
             instr_num = res[0]
         elif bb.bb_num == 0:
