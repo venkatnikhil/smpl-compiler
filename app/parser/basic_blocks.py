@@ -37,6 +37,9 @@ class BB:
     def get_first_instr_num(self) -> Optional[int]:
         return self._instr_list[0] if self._instr_list else None
 
+    def get_last_instr_num(self) -> int:
+        return self._instr_list[-1]
+
     def remove_empty_instr(self) -> None:
         assert len(self._instr_list) == 1, "BB instr has more than 1 instrs"
         self._instr_list.pop()

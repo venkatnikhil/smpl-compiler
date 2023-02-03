@@ -39,6 +39,7 @@ class Parser:
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
         self.__check_token(TokenEnum.EOF.value)
+        self.cfg.update_branch_instrs()
 
     def parse_var_decl(self) -> None:
         self.__check_token(TokenEnum.VAR.value)

@@ -49,7 +49,7 @@ class CFG:
         bb1: int = self.create_bb([bb0], [])
         self.const_bb = self.get_bb(bb0)
 
-    def get_existing_instr(self, bb: BB, opcode: OpCodeEnum, **kwargs) -> Optional[int]:
+    def get_common_subexpr(self, bb: BB, opcode: OpCodeEnum, **kwargs) -> Optional[int]:
         instrs: list[int] = bb.opcode_instr_order[opcode]
 
         for instr in instrs:
@@ -60,7 +60,7 @@ class CFG:
         if dom_pred == -1:
             return None
 
-        return self.get_existing_instr(self.get_bb(dom_pred), opcode, **kwargs)
+        return self.get_common_subexpr(self.get_bb(dom_pred), opcode, **kwargs)
 
     def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, bb: Optional[int] = None, **kwargs) -> int:
         if bb is None:
@@ -69,7 +69,7 @@ class CFG:
             bb = self.get_bb(bb)
 
         if opcode not in self.excluded_instrs:
-            existing_instr = self.get_existing_instr(bb, opcode, **kwargs)
+            existing_instr = self.get_common_subexpr(bb, opcode, **kwargs)
             if existing_instr is not None:
                 return existing_instr
 
@@ -136,6 +136,12 @@ class CFG:
         instr = self._instr_graph.get_instr(instr_num)
         assert isinstance(instr, OpInstrNode), "can only update OpInstrNode"
         instr.update_instr(change_dict)
+
+    def update_branch_instrs(self) -> None:
+        for bb in self._bb_map:
+            instr: InstrNodeActual = self._instr_graph.get_instr(bb.get_last_instr_num())
+            if instr.opcode == OpCodeEnum.BRA.value:
+                instr.left = self.get_bb(instr.left).get_first_instr_num()
 
     def debug(self) -> None:
         for bb in self._bb_map:
