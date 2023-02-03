@@ -21,10 +21,14 @@ class Parser:
         # check if the current token matches the expected token; raise error otherwise
         if isinstance(expected, int):
             if self.sym != expected:  # does not match specific token
-                raise CustomSyntaxError(message="error")
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(expected=f"{Tokenizer.id2string(expected)}",
+                                        found=f"{Tokenizer.id2string(self.sym)}", at=f"line: {line}, col: {col}")
         else:
             if self.sym not in expected:  # does not match **any** of the expected tokens
-                raise CustomSyntaxError(message="error")
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(expected=f"{list(map(Tokenizer.id2string, expected))}",
+                                        found=f"{Tokenizer.id2string(self.sym)}", at=f"line: {line}, col: {col}")
 
         if self.sym == TokenEnum.EOF.value:  # end of input, simply return
             return
@@ -49,7 +53,9 @@ class Parser:
             self.__next_token()
             self.__check_token(TokenEnum.IDENTIFIER.value)
             if self.tokenizer.id in self.cfg.declared_vars:
-                raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once.")
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once "
+                                                f"at line: {line}, col: {col}!")
             self.cfg.declared_vars.add(self.tokenizer.id)
         self.__check_token(TokenEnum.SEMI.value)
 
@@ -63,7 +69,9 @@ class Parser:
 
     def parse_identifier(self) -> int:
         if self.tokenizer.id not in self.cfg.declared_vars:
-            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared!")
+            line, col = self.tokenizer.get_curr_pos()
+            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared but used at line: "
+                                            f"{line}, col: {col}!")
         self.__check_token(TokenEnum.IDENTIFIER.value)
         return self.tokenizer.id
 

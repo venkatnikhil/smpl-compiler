@@ -9,14 +9,22 @@ class FileReader:
     # FileReader for the Tokenizer class
     def __init__(self, file_name: str) -> None:
         self._file_reader = open(file_name, 'r')
+        self.lineno = 1
+        self.colno = 1
+        self.sym = ""
 
     # return the next char from the input file
     def get_next(self) -> str:
-        sym: str = self._file_reader.read(1)
+        self.colno += 1
+        if self.sym == "\n":
+            self.lineno += 1
+            self.colno = 1
+
+        self.sym: str = self._file_reader.read(1)
         # When the end of file is reached, returns the end-of-file message/token
-        if not sym:
+        if not self.sym:
             return END_OF_FILE
-        return sym
+        return self.sym
 
 
 # Tokenizer class for generating the tokens from input file
@@ -52,6 +60,9 @@ class Tokenizer:
         
         index = list(Tokenizer.token_map.values()).index(ident)
         return list(Tokenizer.token_map.keys())[index]
+
+    def get_curr_pos(self) -> tuple[int, int]:
+        return self._file_reader.lineno, self._file_reader.colno
         
     # Move to the next character from the input file
     def next_char(self) -> None:
@@ -109,7 +120,8 @@ class Tokenizer:
             self.next_char()
             if self.token_map.get(token + self._sym) is None:
                 if self.token_map.get(token) is None:
-                    raise CustomSyntaxError(message=f"No token '{token}' found")
+                    raise CustomSyntaxError(message=f"Invalid token '{token}' found at line: {self._file_reader.lineno}, "
+                                                    f"col: {self._file_reader.colno}")
                 
                 # If there is no following symbol to complete the multi-char operator return the token as an operator
                 return self.token_map[token]
@@ -126,4 +138,5 @@ class Tokenizer:
             return self.token_map[token]
         
         # If the current symbol doesn't exist in the _token_map and is neither an identifier nor a number, raise error
-        raise CustomSyntaxError(message=f"No token '{self._sym}' found")
+        raise CustomSyntaxError(message=f"Invalid token '{self._sym}' found at line: {self._file_reader.lineno}, "
+                                        f"col: {self._file_reader.colno}")
