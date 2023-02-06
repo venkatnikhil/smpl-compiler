@@ -31,10 +31,10 @@ def generate_ident():
                 exp += random.choice(string.ascii_lowercase) 
             nest2 -= 1   
     
-    #print(exp)
-    return exp
+    print(exp)
+    #return exp
 
-#generate_ident()
+generate_ident()
 
 def generate_number():
     exp = ''
@@ -75,10 +75,10 @@ def generate_factor():
         exp = '( ' + generate_expression() +' )'
     elif nest == 3:
         pass
-    print(exp)
-    #return exp
+    #print(exp)
+    return exp
 
-generate_factor()
+#generate_factor()
 
 def generate_term():
     exp = ''
