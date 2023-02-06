@@ -9,7 +9,7 @@ def generate_rand_expr():
     exp = ""
     op = ["+", "-", "/", "*"]
     count = 0
-    max_count = 50
+    max_count = 5
 
     def generate_expr(add_op=False):
         nonlocal exp, count
