@@ -14,6 +14,12 @@ class BB:
     def debug(self) -> None:
         print(repr(self))
 
+    def get_instr_list(self):
+        return self._instr_list
+
+    def get_var_instr_map(self):
+        return self._var_instr_map
+
     def update_opcode_instr_order(self, opcode: OpCodeEnum, instr: int) -> None:
         self.opcode_instr_order[opcode].append(instr)
 

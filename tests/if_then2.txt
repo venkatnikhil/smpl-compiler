@@ -1,0 +1,13 @@
+main var a,b,c;{
+    let a <- 10;
+    if a < 11
+    then
+        let b <- 15 + 11;
+        let c <- 15 + 15;
+        if a < 11
+        then
+            let b <- 15 + 11;
+            let c <- 15 + 15;
+        fi
+    fi
+}.

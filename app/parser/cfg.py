@@ -2,8 +2,8 @@ from app.custom_types import InstrNodeType, InstrNodeActual
 from app.parser.basic_blocks import BB
 from app.parser.instr_graph import InstrGraph
 from app.parser.instr_node import OpInstrNode, EmptyInstrNode
-from app.tokens import OpCodeEnum, RELOP_TOKEN_OPCODE
-from typing import Optional
+from app.tokens import OpCodeEnum, RELOP_TOKEN_OPCODE, TokenEnum
+from typing import Optional, Union
 from app.tokenizer import Tokenizer
 
 
@@ -20,8 +20,69 @@ class CFG:
         self.declared_vars: set[int] = set()
         self.excluded_instrs: set[OpCodeEnum] = {RELOP_TOKEN_OPCODE.values()}.union(
             {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value})
+        self._phi_scope: list[tuple[int, TokenEnum]] = list()
 
         self.__initialize_cfg()
+
+    def add_phi_scope(self, bb_num: int, bb_type: TokenEnum) -> None:
+        self._phi_scope.append((bb_num, bb_type))
+
+    def remove_phi_scope(self) -> None:
+        self._phi_scope.pop()
+
+    def get_phi_scope(self) -> Optional[tuple[int, TokenEnum]]:
+        if self._phi_scope:
+            return self._phi_scope[-1]
+        return None
+
+    def create_phi(self, ident: int, instr_num: int, assignment: bool = False) -> None:
+        phi_scope: Optional[tuple[int, TokenEnum]] = self.get_phi_scope()
+
+        if phi_scope:
+            phi_bb_num: int = phi_scope[0]
+            phi_bb: BB = self.get_bb(phi_bb_num)
+            # print(phi_bb_num, phi_scope[1])
+            is_while: bool = True if phi_scope[1] == TokenEnum.WHILE.value else False
+
+            if assignment and not is_while:
+                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
+                                                           right=None)
+                self.remove_phi_scope()
+                self.update_var_instr_map(phi_bb, ident, phi_instr_num)
+                self.add_phi_scope(phi_scope[0], phi_scope[1])
+
+            # TODO: Resolve the similar case of while
+            # if assignment and is_while:
+            #     phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
+            #                                                right=None)
+            #     phi_bb.update_var_instr_map(ident, phi_instr_num)
+
+    def update_var_instr_map(self, bb: BB, ident: int, instr_num: int, assign: bool = False) -> None:
+        bb.update_var_instr_map(ident, instr_num)
+        self.create_phi(ident, instr_num, assignment=assign)
+
+    def resolve_phi(self, bb_num: int) -> None:
+        bb = self.get_bb(bb_num)
+        var_instr_map = bb.get_var_instr_map()
+        for ident, instr_num in var_instr_map.items():
+            instr = self.get_instr(instr_num)
+            if instr.opcode == OpCodeEnum.PHI.value:
+                l_instr = instr.left
+                r_instr = instr.right
+                if l_instr is None:
+                    l_instr = self.get_var_instr_num(self._predecessors[bb_num][0], ident, set())
+                if r_instr is None:
+                    r_instr = self.get_var_instr_num(self._predecessors[bb_num][1], ident, set())
+
+                if l_instr == r_instr:
+                    # TODO: propagate the new instr_num for ident to successors in case of while
+                    bb.update_var_instr_map(ident, l_instr)
+                else:
+                    self.update_instr(instr_num, {"left": l_instr, "right": r_instr})
+
+                if self.get_phi_scope() is not None and self.get_phi_scope()[0] is TokenEnum.WHILE.value:
+                    # TODO: resolve the changed instructions in the successors for the case of while
+                    continue
 
     def get_bb(self, bb_num: int) -> BB:
         return self._bb_map[bb_num]
@@ -84,7 +145,9 @@ class CFG:
         bb.update_opcode_instr_order(opcode, instr_num)
         return instr_num
 
-    def get_var_instr_num(self, bb: BB, ident: int, visited_bb: set[int]) -> Optional[int]:
+    def get_var_instr_num(self, bb: Union[BB, int], ident: int, visited_bb: set[int]) -> Optional[int]:
+        if isinstance(bb, int):
+            bb = self.get_bb(bb)
         if bb.bb_num in visited_bb:
             return
         visited_bb.add(bb.bb_num)
@@ -92,25 +155,32 @@ class CFG:
             return bb.get_var_instr_num(ident)
 
         search_space: list[int] = self._predecessors[bb.bb_num]
-        res: list[int] = list()
+        # res: list[int] = list()
+        res: set[int] = set()
         for node in search_space:
             instr = self.get_var_instr_num(self._bb_map[node], ident, visited_bb)
             if instr is not None:
-                res.append(instr)
+                res.add(instr)
 
-        instr_num: Optional[int] = None
-        res: list[int] = list(res)
-        if len(res) > 1 and res[0] != res[1]:
-            instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0],
-                                              right=res[1])
-            bb.update_var_instr_map(ident, instr_num)
-        elif len(set(res)) == 1:
-            instr_num = res[0]
-        elif bb.bb_num == 0:
+        assert len(res) <= 1, f"2 different resolutions found for phi for ident: {Tokenizer.id2string(ident)}"
+        # instr_num: Optional[int] = None
+        if bb.bb_num == 0:
             print(f"Warning!: {Tokenizer.id2string(ident)} referenced before assignment!")
-            instr_num = 0  # uninitialized vars
+            return 0
+        else:
+            return res.pop()
 
-        return instr_num
+        # if len(res) > 1 and res[0] != res[1]:
+        #     instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0],
+        #                                       right=res[1])
+        #     self.update_var_instr_map(bb, ident, instr_num)
+        # elif len(set(res)) == 1:
+        #     instr_num = res[0]
+        # elif bb.bb_num == 0:
+        #     print(f"Warning!: {Tokenizer.id2string(ident)} referenced before assignment!")
+        #     instr_num = 0  # uninitialized vars
+
+        # return instr_num
 
     def create_bb(self, predecessors: list[int], dom_predecessors: Optional[list[int]] = None) -> int:
         if dom_predecessors is None:

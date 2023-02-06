@@ -19,9 +19,9 @@ class ConstInstrNode:
 
 
 class OpInstrNode:
-    def __init__(self, opcode: OpCodeEnum, instr_num: int, left: int, right: Optional[int]) -> None:
+    def __init__(self, opcode: OpCodeEnum, instr_num: int, left: Optional[int], right: Optional[int]) -> None:
         self.opcode: OpCodeEnum = opcode
-        self.left: int = left
+        self.left: Optional[int] = left
         self.right: Optional[int] = right
         self.instr_num: int = instr_num
 
