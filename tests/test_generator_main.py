@@ -2,22 +2,23 @@ import random
 import string
 
 # To to list:
-# done - number of repeat times
 # done - variable list: something we have to re-use (but it is okay to not use)
 # optional - exp list: generate random exp and add it to list, and then later on if we need exp again, we could either reuse from the list or random generate agaian
 # counter: for if-statement, while-statement, like 3
 # done - counter: for expression; we could choose the counter value randomly as well
 # the let could be more than one, also need let after the if-statement
+# generate txt file as output
+# consider netsted if-else
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
 repetition = 2 # number of repetition for {}
-counter = 3 # counter variable for expression
+counter = 2 # counter variable for expression
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
 only_number = True # first assignment, we want only number as factor
-assigned_variable_init = []
-then_else = False
+assigned_variable_init = [] # store already assigned variables
+then_else = False # else part
 
 def generate_ident():
         exp = ''
@@ -106,14 +107,16 @@ def generate_factor():
         global only_number
         exp = ''
         
-        #if counter > 0:
-        #    nest = random.randint(0, 2)
-        #else:
-        nest = random.randint(0, 1)
-        #if(only_number)
         if(only_number):
             exp = generate_number()
         else:
+            if counter > 0:
+                nest = random.randint(0, 2)
+                #print("if nest is: " + str(nest))
+            else:
+                nest = random.randint(0, 1)
+                #print("else nest is: " + str(nest))
+            
             if nest == 0:
                 exp = generate_designator_expr()
                 #exp = generate_designator()
@@ -122,6 +125,7 @@ def generate_factor():
             elif nest == 2:
                 counter -= 1
                 exp = '(' + str(generate_expression()) +')'
+                #print("value: "+ str(counter))
             elif nest == 3:
                 pass
         #print(exp)
