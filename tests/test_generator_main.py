@@ -286,30 +286,34 @@ def generate_nested_if_stmt():
     
     result = ''
     nest1 = random.randint(0,1)
+    # if-then-fi
     if nest1:
 
         print('\t' + 'if ' + generate_relation())
         print('\t' + 'then ')
         
-        print('\t' '\t' + generate_statSequence())
+        print('\t' + generate_statSequence())
         
-        '''
+        
         nest2 = random.randint(0,1)
         if nest2:
-            print('\t' + 'if ' + generate_relation())
-            print('\t' + 'then ')
+            print('\t' + '\t' + 'if ' + generate_relation())
+            print('\t' + '\t' + 'then ')
             print('\t' + generate_statSequence())
-            print('\t' + 'fi ')
+            print('\t' + '\t' + 'fi ')
         else:
             pass
-        '''
+        
         print('\t' + 'fi ')
+        
         '''
         result += 'if ' + generate_relation() + '\n'
         result += 'then ' + '\n'
         result += generate_statSequence() + '\n'
         result += 'fi '
         '''
+    
+    # if-then-else-fi
     else:
         print('\t' + 'if ' + generate_relation())
         then_else = True
