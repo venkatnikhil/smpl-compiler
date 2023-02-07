@@ -100,36 +100,35 @@ def generate_designator_expr():
     #print(exp)
     return exp
 
-# ignore expression and funcCall for now
+# ignore funcCall for now
 def generate_factor():
         global counter
         global only_number
         exp = ''
-        '''
-        if counter > 0:
-            nest = random.randint(0, 2)
-        else:
-            nest = random.randint(0, 1)
-        '''
+        
+        #if counter > 0:
+        #    nest = random.randint(0, 2)
+        #else:
+        nest = random.randint(0, 1)
+        #if(only_number)
         if(only_number):
             exp = generate_number()
         else:
-            nest = random.randint(0, 1)
-
             if nest == 0:
                 exp = generate_designator_expr()
+                #exp = generate_designator()
             elif nest == 1:
                 exp = generate_number()
             elif nest == 2:
                 counter -= 1
-                if(counter > 0):
-                    exp = '( ' + generate_expression() +' )'
+                exp = '(' + str(generate_expression()) +')'
             elif nest == 3:
                 pass
         #print(exp)
         return exp
 
 #generate_factor()
+
 
 # Do we need to conside X/0 case?
 def generate_term():
@@ -173,6 +172,7 @@ def generate_expression():
         return exp
 
 #generate_expression()
+
 
 def generate_relation():
         exp1 = generate_expression()
