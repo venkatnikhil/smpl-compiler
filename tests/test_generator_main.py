@@ -299,7 +299,7 @@ def generate_nested_if_stmt():
         if nest2:
             print('\t' + '\t' + 'if ' + generate_relation())
             print('\t' + '\t' + 'then ')
-            print('\t' + generate_statSequence())
+            print('\t' + '\t' + generate_statSequence())
             print('\t' + '\t' + 'fi ')
         else:
             pass
@@ -318,11 +318,21 @@ def generate_nested_if_stmt():
         print('\t' + 'if ' + generate_relation())
         then_else = True
         print('\t' + 'then ')
-        print('\t' '\t' + generate_statSequence())
+        print('\t' + generate_statSequence())
         
         print('\t' + 'else ')
-        print('\t' '\t' + generate_statSequence())
+        print('\t' + generate_statSequence())
         then_else = False
+
+        nest2 = random.randint(0,1)
+        if nest2:
+            print('\t' + '\t' + 'if ' + generate_relation())
+            print('\t' + '\t' + 'then ')
+            print('\t' + '\t' + generate_statSequence())
+            print('\t' + '\t' + 'fi ')
+        else:
+            pass
+
         print('\t' + 'fi ')
         
     return result
