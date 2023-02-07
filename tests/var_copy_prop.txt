@@ -16,5 +16,5 @@ main var a,f,g,z,c;{
             let z <- 10-10;
         fi;
     fi;
-    let c <- 7 * 5;
+    let c <- f * 5;
 }.

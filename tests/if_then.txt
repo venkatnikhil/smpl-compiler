@@ -1,4 +1,4 @@
-main {
+main var a,f;{
     let a <- 10;
     if a < 11
     then

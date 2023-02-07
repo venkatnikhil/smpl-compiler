@@ -21,24 +21,43 @@ class Parser:
         # check if the current token matches the expected token; raise error otherwise
         if isinstance(expected, int):
             if self.sym != expected:  # does not match specific token
-                raise CustomSyntaxError(message="error")
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(expected=f"{Tokenizer.id2string(expected)}",
+                                        found=f"{Tokenizer.id2string(self.sym)}", at=f"line: {line}, col: {col}")
         else:
             if self.sym not in expected:  # does not match **any** of the expected tokens
-                raise CustomSyntaxError(message="error")
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(expected=f"{list(map(Tokenizer.id2string, expected))}",
+                                        found=f"{Tokenizer.id2string(self.sym)}", at=f"line: {line}, col: {col}")
 
-        if self.sym == TokenEnum.PERIOD.value:  # end of input, simply return
+        if self.sym == TokenEnum.EOF.value:  # end of input, simply return
             return
         self.__next_token()  # move onto next token
 
     def parse_computation(self) -> None:
         self.__check_token(TokenEnum.MAIN.value)
+        if self.sym == TokenEnum.VAR.value:
+            self.parse_var_decl()
         self.__check_token(TokenEnum.BEGIN.value)
         self.parse_stat_sequence()
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
+        self.__check_token(TokenEnum.EOF.value)
+        self.cfg.update_branch_instrs()
 
     def parse_var_decl(self) -> None:
-        pass
+        self.__check_token(TokenEnum.VAR.value)
+        self.__check_token(TokenEnum.IDENTIFIER.value)
+        self.cfg.declared_vars.add(self.tokenizer.id)
+        while self.sym == TokenEnum.COMMA.value:
+            self.__next_token()
+            self.__check_token(TokenEnum.IDENTIFIER.value)
+            if self.tokenizer.id in self.cfg.declared_vars:
+                line, col = self.tokenizer.get_curr_pos()
+                raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once "
+                                                f"at line: {line}, col: {col}!")
+            self.cfg.declared_vars.add(self.tokenizer.id)
+        self.__check_token(TokenEnum.SEMI.value)
 
     def parse_assignment(self) -> None:
         self.__check_token(TokenEnum.LET.value)
@@ -48,11 +67,18 @@ class Parser:
         instr_num: int = self.parse_expression()
         self.cfg.curr_bb.update_var_instr_map(ident, instr_num)
 
-    def parse_designator(self, rhs: bool = True) -> Optional[int]:
-        ident = self.tokenizer.id
+    def parse_identifier(self) -> int:
+        if self.tokenizer.id not in self.cfg.declared_vars:
+            line, col = self.tokenizer.get_curr_pos()
+            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared but used at line: "
+                                            f"{line}, col: {col}!")
         self.__check_token(TokenEnum.IDENTIFIER.value)
+        return self.tokenizer.id
+
+    def parse_designator(self, rhs: bool = True) -> Optional[int]:
+        ident = self.parse_identifier()
         if rhs:  # get instr num only when it is on RHS
-            return self.cfg.curr_bb.get_var_instr_num(ident)
+            return self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
 
     def parse_expression(self) -> int:
         l_instr: int = self.parse_term()
@@ -131,8 +157,10 @@ class Parser:
         self.cfg.update_instr(br_instr, {"right": self.cfg.get_bb(else_bb).get_first_instr_num()})
         self.__check_token(TokenEnum.FI.value)
         join_bb: int = self.cfg.create_bb([l_parent, r_parent], [if_bb])
-        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, then_bb,
-                                  left=self.cfg.get_bb(join_bb).get_first_instr_num())
+        # self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
+        #                           left=self.cfg.get_bb(join_bb).get_first_instr_num())
+        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
+                                  left=join_bb)
 
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:
@@ -144,14 +172,5 @@ class Parser:
         self.parse_statement()
         if self.sym == TokenEnum.SEMI.value:
             self.__next_token()
-            # TODO: fix semi colon handling
-            while self.sym != TokenEnum.END.value:
-                if self.sym in [TokenEnum.FI.value, TokenEnum.ELSE.value]:
-                    return
-                self.parse_statement()
-                if self.sym == TokenEnum.SEMI.value:
-                    self.__next_token()
-                elif self.sym == TokenEnum.END.value:
-                    return
-                else:
-                    raise CustomSyntaxError(message="error")
+            if self.sym not in [TokenEnum.FI.value, TokenEnum.ELSE.value, TokenEnum.END.value, TokenEnum.OD.value]:
+                self.parse_stat_sequence()

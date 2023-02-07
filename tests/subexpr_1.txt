@@ -1,0 +1,5 @@
+main var a,b,c;{
+    let a <- 10;
+    let b <- a + 20;
+    let c <- 10 + 20;
+}.

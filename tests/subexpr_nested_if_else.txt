@@ -1,6 +1,6 @@
 main var a,f,g,z,c;{
     let a <- 10;
-    if a < 11
+    if a < a
     then
         let f <- 15 + 11;
         if f == 26

@@ -1,0 +1,9 @@
+main var a,f,z;{
+    let z <- 10;
+    let a <- z - 10;
+    if a + z < 10 - z
+    then
+        let f <- 10 - z;
+    fi;
+    let z <- z - z + z;
+}.

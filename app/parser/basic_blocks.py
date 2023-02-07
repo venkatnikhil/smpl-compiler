@@ -1,19 +1,28 @@
 from app.tokenizer import Tokenizer
+from app.tokens import OpCodeEnum
 from typing import Optional
+from collections import deque, defaultdict
 
 
 class BB:
     def __init__(self, bb_num: int) -> None:
         self.bb_num: int = bb_num
-        self._instr_list: list[int] = []
+        self._instr_list: deque[int] = deque([])
         self._var_instr_map: dict[int, int] = dict()
+        self.opcode_instr_order: dict[OpCodeEnum, list[int]] = defaultdict(list)
 
     def debug(self) -> None:
         print(repr(self))
 
-    def update_instr_list(self, instr: int) -> None:
-        # TODO: should we check if instr_num is already in the list? check copy_prop_test for info subexpr elimination
-        self._instr_list.append(instr)
+    def update_opcode_instr_order(self, opcode: OpCodeEnum, instr: int) -> None:
+        self.opcode_instr_order[opcode].append(instr)
+
+    def update_instr_list(self, instr: int, is_phi: bool = False) -> None:
+        # NOTE: always use update_opcode_instr_order and this func in conjunction
+        if is_phi:
+            self._instr_list.appendleft(instr)
+        else:
+            self._instr_list.append(instr)
 
     def update_var_instr_map(self, ident: int, instr_num: int) -> None:
         self._var_instr_map[ident] = instr_num
@@ -26,6 +35,9 @@ class BB:
 
     def get_first_instr_num(self) -> Optional[int]:
         return self._instr_list[0] if self._instr_list else None
+
+    def get_last_instr_num(self) -> int:
+        return self._instr_list[-1]
 
     def remove_empty_instr(self) -> None:
         assert len(self._instr_list) == 1, "BB instr has more than 1 instrs"
