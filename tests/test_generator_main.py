@@ -5,11 +5,9 @@ import string
 # done - number of repeat times
 # done - variable list: something we have to re-use (but it is okay to not use)
 # optional - exp list: generate random exp and add it to list, and then later on if we need exp again, we could either reuse from the list or random generate agaian
-# counter: for if-statement, while-statement, ex like 3
+# counter: for if-statement, while-statement, like 3
 # done - counter: for expression; we could choose the counter value randomly as well
 # the let could be more than one, also need let after the if-statement
-# the let <- XX, XX need to be already let
-
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
@@ -18,8 +16,8 @@ counter = 3 # counter variable for expression
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
 only_number = True # first assignment, we want only number as factor
-only_assigned = True # after first assignment, we want expression only contain the variables we already assigned
 assigned_variable_init = []
+then_else = False
 
 def generate_ident():
         exp = ''
@@ -84,9 +82,7 @@ def generate_number():
 def generate_designator():
     
     exp = ''
-    
-    nest = random.randint(0, len(variable_init)-1)
-        
+    nest = random.randint(0, len(variable_init)-1)   
     exp = variable_init[nest]
         
     #print(exp)
@@ -95,17 +91,11 @@ def generate_designator():
 #generate_designator()
 def generate_designator_expr():
     global assigned_variable_init
-    global only_assigned
 
     exp = ''
-    if only_assigned:
-        nest = random.randint(0, len(assigned_variable_init)-1)
-        
-        exp = assigned_variable_init[nest]
-    else:
-        nest = random.randint(0, len(variable_init)-1)
-        
-        exp = variable_init[nest]
+    
+    nest = random.randint(0, len(assigned_variable_init)-1)
+    exp = assigned_variable_init[nest]
         
     #print(exp)
     return exp
@@ -197,20 +187,24 @@ def generate_relation():
 def generate_assignment():
         global only_number
         global assigned_variable_init
-        global only_assigned
+        global then_else
+        global variable_init
 
         if only_number:
-            only_number = True
             first_assignment = generate_designator()
             print('let ' + first_assignment + ' <- ' + generate_expression() + ';')
             only_number = False
             assigned_variable_init.append(first_assignment)
-        else:
-            only_assigned = True
+        elif then_else:
             later_assignment = generate_designator()
-            print('let ' + later_assignment + ' <- ' + generate_expression() + ';')
+            print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
+            #variable_init.append(later_assignment)
+        else:
             
+            later_assignment = generate_designator()
+            print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
             assigned_variable_init.append(later_assignment)
+        
         #return ('let ' + generate_designator() + ' <- ' + generate_expression())
         
 #generate_assignment()
@@ -223,22 +217,22 @@ def generate_statement():
 #generate_statement()
 
 def generate_statSequence():
-        exp = ''
-        exp = str(generate_statement())
+    exp = ''
+    exp = str(generate_statement())
         
-        nest1 = random.randint(0,1)
-        if nest1:
-            nest2 = random.randint(1,repetition)
-            while nest2 > 0:
-                exp += str('; ') + str(generate_statement())
-                nest2 -= 1
+    nest1 = random.randint(0,1)
+    if nest1:
+        nest2 = random.randint(1,repetition)
+        while nest2 > 0:
+            exp += str('; ') + str(generate_statement())
+            nest2 -= 1
         
-        nest3 = random.randint(0,1)
-        if nest3:
-            exp += str(';')
-        #print(exp)
+    nest3 = random.randint(0,1)
+    if nest3:
+        exp += str(';')
+    #print(exp)
         
-        return exp
+    return exp
 
 generate_statSequence()
 
@@ -247,6 +241,7 @@ def generate_funcCall():
         pass
 
 def generate_if_stmt():
+    global then_else
     
     nest1 = random.randint(0,1)
     if nest1:
@@ -255,15 +250,17 @@ def generate_if_stmt():
         generate_statSequence()
         print('fi ')
     
-    
     else:
         print('if ' + generate_relation())
+        then_else = True
         print('then ')
         generate_statSequence()
+        
         print('else ')
         generate_statSequence() 
+        then_else = False
         print('fi ')
-    
+        
     #return exp
 
 generate_if_stmt()
