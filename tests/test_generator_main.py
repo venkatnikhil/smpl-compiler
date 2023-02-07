@@ -133,7 +133,6 @@ def generate_factor():
 
 #generate_factor()
 
-
 # Do we need to conside X/0 case?
 def generate_term():
         exp = ''
@@ -196,20 +195,21 @@ def generate_assignment():
 
         if only_number:
             first_assignment = generate_designator()
-            print('let ' + first_assignment + ' <- ' + generate_expression() + ';')
+            #print('let ' + first_assignment + ' <- ' + generate_expression() + ';')
             only_number = False
             assigned_variable_init.append(first_assignment)
+            return 'let ' + first_assignment + ' <- ' + generate_expression()
         elif then_else:
             later_assignment = generate_designator()
-            print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
+            #print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
             #variable_init.append(later_assignment)
+            return 'let ' + later_assignment + ' <- ' + generate_expression()
         else:
             
             later_assignment = generate_designator()
-            print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
+            #print('let ' + later_assignment + ' <- ' + generate_expression() + ';')    
             assigned_variable_init.append(later_assignment)
-        
-        #return ('let ' + generate_designator() + ' <- ' + generate_expression())
+            return 'let ' + later_assignment + ' <- ' + generate_expression()
         
 #generate_assignment()
 
@@ -222,8 +222,9 @@ def generate_statement():
 
 def generate_statSequence():
     exp = ''
-    exp = str(generate_statement())
-        
+    exp = '\t' + str(generate_statement())
+    
+    
     nest1 = random.randint(0,1)
     if nest1:
         nest2 = random.randint(1,repetition)
@@ -234,11 +235,12 @@ def generate_statSequence():
     nest3 = random.randint(0,1)
     if nest3:
         exp += str(';')
+    
     #print(exp)
-        
     return exp
 
-generate_statSequence()
+statSequence = generate_statSequence()
+print(statSequence)
 
 # ignore funcCall for now
 def generate_funcCall():
@@ -247,27 +249,81 @@ def generate_funcCall():
 def generate_if_stmt():
     global then_else
     
+    result = ''
     nest1 = random.randint(0,1)
     if nest1:
-        print('if ' + generate_relation())
-        print('then ')
-        generate_statSequence()
-        print('fi ')
-    
-    else:
-        print('if ' + generate_relation())
-        then_else = True
-        print('then ')
-        generate_statSequence()
         
-        print('else ')
-        generate_statSequence() 
-        then_else = False
-        print('fi ')
+        print('\t' + 'if ' + generate_relation())
+        print('\t' + 'then ')
         
-    #return exp
+        print('\t' '\t' + generate_statSequence())
+        print('\t' + 'fi ')
+        '''
+        result += 'if ' + generate_relation() + '\n'
+        result += 'then ' + '\n'
+        result += generate_statSequence() + '\n'
+        result += 'fi '
+        
+        '''
 
-generate_if_stmt()
+    else:
+        print('\t' + 'if ' + generate_relation())
+        then_else = True
+        print('\t' + 'then ')
+        print('\t' '\t' + generate_statSequence())
+        
+        print('\t' + 'else ')
+        print('\t' '\t' + generate_statSequence())
+        then_else = False
+        print('\t' + 'fi ')
+    
+    return result
+
+#generate_if_stmt()
+
+def generate_nested_if_stmt():
+    global then_else
+    
+    result = ''
+    nest1 = random.randint(0,1)
+    if nest1:
+
+        print('\t' + 'if ' + generate_relation())
+        print('\t' + 'then ')
+        
+        print('\t' '\t' + generate_statSequence())
+        
+        '''
+        nest2 = random.randint(0,1)
+        if nest2:
+            print('\t' + 'if ' + generate_relation())
+            print('\t' + 'then ')
+            print('\t' + generate_statSequence())
+            print('\t' + 'fi ')
+        else:
+            pass
+        '''
+        print('\t' + 'fi ')
+        '''
+        result += 'if ' + generate_relation() + '\n'
+        result += 'then ' + '\n'
+        result += generate_statSequence() + '\n'
+        result += 'fi '
+        '''
+    else:
+        print('\t' + 'if ' + generate_relation())
+        then_else = True
+        print('\t' + 'then ')
+        print('\t' '\t' + generate_statSequence())
+        
+        print('\t' + 'else ')
+        print('\t' '\t' + generate_statSequence())
+        then_else = False
+        print('\t' + 'fi ')
+        
+    return result
+
+generate_nested_if_stmt()
 
 def generate_while_stmt():
         pass
@@ -276,5 +332,18 @@ def generate_return_stmt():
 
 def last_line():
     print('}.')
+    return '}.'
 
-last_line()
+last_line = last_line()
+
+'''
+def create_output():
+    f = open("output.txt", "w")
+    f.write(output)
+    f.write('\n')
+    f.write(stat_sequence)
+    f.write('\n')
+    f.write(last_line)
+    f.close()
+create_output()
+'''
