@@ -27,6 +27,15 @@ class CFG:
     def add_phi_scope(self, bb_num: int, bb_type: TokenEnum) -> None:
         self._phi_scope.append((bb_num, bb_type))
 
+    def get_bb_map(self) -> list[BB]:
+        return self._bb_map
+
+    def get_dom_predecessor(self, bb: int) -> int:
+        return self._dom_predecessors[bb]
+
+    def get_predecessors(self, bb: int) -> list[int]:
+        return self._predecessors[bb]
+
     def remove_phi_scope(self) -> None:
         self._phi_scope.pop()
 
@@ -69,7 +78,7 @@ class CFG:
         bb = self.get_bb(bb_num)
         var_instr_map = bb.get_var_instr_map()
         for ident, instr_num in var_instr_map.items():
-            instr = self.get_instr(instr_num)
+            instr = self.get_actual_instr(instr_num)
             if instr.opcode == OpCodeEnum.PHI.value:
                 l_instr = instr.left
                 r_instr = instr.right
@@ -255,7 +264,7 @@ class CFG:
         self.bb_num += 1
         return self.curr_bb.bb_num
 
-    def get_instr(self, instr_num: int) -> InstrNodeActual:
+    def get_actual_instr(self, instr_num: int) -> InstrNodeActual:
         return self._instr_graph.get_instr(instr_num)
 
     def update_instr(self, instr_num: int, change_dict: dict[str, int]) -> None:

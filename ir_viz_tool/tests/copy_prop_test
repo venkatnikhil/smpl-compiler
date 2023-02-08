@@ -1,0 +1,5 @@
+digraph CFG {
+	BB0 [label="<b>BB0 | {1: const #10 | 3: const #20 | 5: const #5 } | {}" shape=record]
+	BB1 [label="<b>BB1 | {2: add (1) (3) | 4: sub (2) (1) | 6: add (5) (1) | 7: add (4) (4) } | {a: 1 | b: 4 | z: 6 | c: 4 | d: 7 | e: 7 }" shape=record]
+	BB0:s -> BB1:n
+}

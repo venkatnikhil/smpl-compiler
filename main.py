@@ -1,6 +1,7 @@
 from app.tokenizer import Tokenizer
 from app.parser.parser import Parser
 from app.error_handling import CustomSyntaxError
+from ir_viz_tool.ir_viz import IRViz
 
 # tokenizer = Tokenizer('if_then.txt')
 # token = -1
@@ -36,5 +37,7 @@ if __name__ == '__main__':
                 parser_obj.cfg._instr_graph.debug()
                 parser_obj.cfg.debug()
                 print(end="\n\n\n")
+                ir_viz = IRViz(parser_obj.cfg, filename=file)
+                ir_viz.generate_graph()
         except CustomSyntaxError as e:
             print(repr(e))

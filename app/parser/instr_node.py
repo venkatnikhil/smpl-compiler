@@ -1,5 +1,6 @@
 from app.tokens import OpCodeEnum
 from typing import Optional
+import re
 
 
 class ConstInstrNode:
@@ -16,6 +17,9 @@ class ConstInstrNode:
 
     def __repr__(self) -> str:
         return "%r: ConstInstrNode <%s, #%r>" % (self.instr_num, self.opcode, self.val)
+
+    def __str__(self) -> str:
+        return "%s: %s #%s" % (self.instr_num, self.opcode, self.val)
 
 
 class OpInstrNode:
@@ -41,6 +45,9 @@ class OpInstrNode:
     def __repr__(self) -> str:
         return "%r: OpInstrNode <%s, (%r), (%r)>" % (self.instr_num, self.opcode, self.left, self.right)
 
+    def __str__(self) -> str:
+        return "%s: %s (%s) (%s)" % (self.instr_num, self.opcode, self.left, self.right)
+
 
 class EmptyInstrNode:
     def __init__(self, instr_num: int) -> None:
@@ -52,6 +59,9 @@ class EmptyInstrNode:
 
     def __repr__(self) -> str:
         return "%r: EmptyInstrNode <%s>" % (self.instr_num, self.opcode)
+
+    def __str__(self) -> str:
+        return "%s: %s" % (self.instr_num, self.opcode.replace("<", "\\<").replace(">", "\\>"))
 
 
 class SingleOpInstrNode:
@@ -75,3 +85,6 @@ class SingleOpInstrNode:
 
     def __repr__(self) -> str:
         return "%r: SingleOpInstrNode <%s, (%r)>" % (self.instr_num, self.opcode, self.left)
+
+    def __str__(self) -> str:
+        return "%s: %s (%s)" % (self.instr_num, self.opcode, self.left)
