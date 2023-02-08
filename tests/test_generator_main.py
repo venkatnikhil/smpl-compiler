@@ -9,7 +9,10 @@ import string
 # the let could be more than one, also need let after the if-statement
 # stop for now - generate txt file as output
 # consider netsted if-else
-# add ; alway after fi
+# done - add ; alway after fi
+# done - while
+# done - while nested while
+# done - while nested if-then-else
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
@@ -353,13 +356,19 @@ def generate_while_stmt():
     print('\t'*level_while + 'while ' + generate_relation())
     print('\t'*level_while + 'do')
 
-    # 0: nested, 1: no nested
-    nest1 = random.randint(0,1)
-    if nest1:
+    # 0: nested while, 1: nested if-else, 2: no nested
+    nest1 = random.randint(0,2)
+    if nest1 == 0:
         while counter_while > 0:
             counter_while -= 1
             level_while += 1
             generate_while_stmt()
+            level_while -= 1
+    elif nest1 == 1:
+        while counter_while > 0:
+            counter_while -= 1
+            level_while += 1
+            generate_if_stmt()
             level_while -= 1
     else:
         pass
