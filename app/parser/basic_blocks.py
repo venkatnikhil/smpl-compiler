@@ -14,6 +14,15 @@ class BB:
     def debug(self) -> None:
         print(repr(self))
 
+    def remove_from_instr_list(self, instr_num: int) -> None:
+        assert instr_num in self._instr_list, f"Instr: {instr_num} not found in BB{self.bb_num} instr list"
+        self._instr_list.remove(instr_num)
+
+    def remove_from_opcode_instr_order(self, opcode: OpCodeEnum, instr_num: int) -> None:
+        assert instr_num in self.opcode_instr_order[opcode], f"Instr: {instr_num} not found in BB{self.bb_num} " \
+                                                             f"opcode instr order"
+        self.opcode_instr_order[opcode].remove(instr_num)
+
     def get_instr_list(self):
         return self._instr_list
 

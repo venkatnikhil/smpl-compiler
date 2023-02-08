@@ -78,7 +78,9 @@ class Parser:
     def parse_designator(self, rhs: bool = True) -> Optional[int]:
         ident = self.parse_identifier()
         if rhs:  # get instr num only when it is on RHS
-            return self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
+            instr_num: int = self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
+            phi_instr_num: Optional[int] = self.cfg.create_phi(ident, instr_num, assignment=False)
+            return phi_instr_num if phi_instr_num else instr_num
 
     def parse_expression(self) -> int:
         l_instr: int = self.parse_term()
@@ -141,36 +143,6 @@ class Parser:
         br_instr: int = self.cfg.build_instr_node(OpInstrNode, opcode, left=cmp_instr, right=None)
         return br_instr
 
-    # def parse_if(self) -> None:
-    #     # if block
-    #     self.__check_token(TokenEnum.IF.value)
-    #     br_instr: int = self.parse_relation()
-    #
-    #     # then block
-    #     self.__check_token(TokenEnum.THEN.value)
-    #     if_bb: int = self.cfg.curr_bb.bb_num
-    #     then_bb: int = self.cfg.create_bb([if_bb])
-    #     self.parse_stat_sequence()
-    #     l_parent: int = self.cfg.curr_bb.bb_num
-    #
-    #     # else block
-    #     else_bb: int = self.cfg.create_bb([if_bb])
-    #     if self.sym == TokenEnum.ELSE.value:
-    #         self.__next_token()
-    #         self.parse_stat_sequence()
-    #     r_parent: int = self.cfg.curr_bb.bb_num
-    #     self.cfg.update_instr(br_instr, {"right": self.cfg.get_bb(else_bb).get_first_instr_num()})
-    #
-    #     # join block
-    #     self.__check_token(TokenEnum.FI.value)
-    #     join_bb: int = self.cfg.create_bb([l_parent, r_parent], [if_bb])
-    #
-    #     # adding branch instruction at the end of then block
-    #     # self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
-    #     #                           left=self.cfg.get_bb(join_bb).get_first_instr_num())
-    #     self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent,
-    #                               left=join_bb)
-
     def parse_if(self) -> None:
         # creating if relation and branch instructions
         self.__check_token(TokenEnum.IF.value)
@@ -201,7 +173,7 @@ class Parser:
         self.cfg.update_successors(r_parent, [join_bb])
 
         # updating the branch instruction from if relation to start of else
-        self.cfg.update_instr(br_instr, {"right": self.cfg.get_bb(else_bb).get_first_instr_num()})
+        self.cfg.update_instr(br_instr, {"right": else_bb})
 
         # creating join block instructions
         self.__check_token(TokenEnum.FI.value)
@@ -216,11 +188,50 @@ class Parser:
         # updating phi scope at the end of if
         self.cfg.remove_phi_scope()
 
+    def parse_while(self) -> None:
+        self.__check_token(TokenEnum.WHILE.value)
+
+        # create while, do and join blocks
+        while_bb: int = self.cfg.create_bb([self.cfg.curr_bb.bb_num])
+        do_bb: int = self.cfg.create_bb([while_bb])
+        follow_bb: int = self.cfg.create_bb([while_bb])
+
+        # updating phi_scope before start of while
+        self.cfg.add_phi_scope(while_bb, TokenEnum.WHILE.value)
+
+        # creating while block instructions
+        self.cfg.curr_bb = self.cfg.get_bb(while_bb)
+        br_instr: int = self.parse_relation()
+
+        # creating do block instructions
+        self.__check_token(TokenEnum.DO.value)
+        self.cfg.curr_bb = self.cfg.get_bb(do_bb)
+        self.parse_stat_sequence()
+        r_parent: int = self.cfg.curr_bb.bb_num
+
+        self.cfg.update_predecessors(while_bb, [r_parent])
+        self.cfg.update_successors(r_parent, [while_bb])
+        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, do_bb, left=while_bb)
+
+        # updating phi scope at the end of while
+        self.cfg.remove_phi_scope()
+
+        # end while parsing
+        self.__check_token(TokenEnum.OD.value)
+        self.cfg.curr_bb = self.cfg.get_bb(follow_bb)
+
+        # updating the branch instruction from while relation to start of follow
+        self.cfg.update_instr(br_instr, {"right": follow_bb})
+
+        self.cfg.resolve_phi(while_bb)
+
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:
             self.parse_assignment()
         elif self.sym == TokenEnum.IF.value:
             self.parse_if()
+        elif self.sym == TokenEnum.WHILE.value:
+            self.parse_while()
 
     def parse_stat_sequence(self) -> None:
         self.parse_statement()
