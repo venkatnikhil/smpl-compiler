@@ -13,7 +13,9 @@ import string
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
 repetition = 2 # number of repetition for {}
-counter = 2 # counter variable for expression
+counter_expr = 2 # counter variable for expression
+counter_if = 1 # counter variable for nested if-else statement
+level = 1 # control the number of indentation
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
 only_number = True # first assignment, we want only number as factor
@@ -103,14 +105,14 @@ def generate_designator_expr():
 
 # ignore funcCall for now
 def generate_factor():
-        global counter
+        global counter_expr
         global only_number
         exp = ''
         
         if(only_number):
             exp = generate_number()
         else:
-            if counter > 0:
+            if counter_expr > 0:
                 nest = random.randint(0, 2)
                 #print("if nest is: " + str(nest))
             else:
@@ -123,9 +125,9 @@ def generate_factor():
             elif nest == 1:
                 exp = generate_number()
             elif nest == 2:
-                counter -= 1
+                counter_expr -= 1
                 exp = '(' + str(generate_expression()) +')'
-                #print("value: "+ str(counter))
+                #print("value: "+ str(counter_expr))
             elif nest == 3:
                 pass
         #print(exp)
@@ -175,7 +177,6 @@ def generate_expression():
         return exp
 
 #generate_expression()
-
 
 def generate_relation():
         exp1 = generate_expression()
@@ -248,24 +249,36 @@ def generate_funcCall():
 
 def generate_if_stmt():
     global then_else
-    
-    result = ''
-    nest1 = random.randint(0,1)
-    if nest1:
-        
-        print('\t' + 'if ' + generate_relation())
-        print('\t' + 'then ')
-        
-        print('\t' '\t' + generate_statSequence())
-        print('\t' + 'fi ')
-        '''
-        result += 'if ' + generate_relation() + '\n'
-        result += 'then ' + '\n'
-        result += generate_statSequence() + '\n'
-        result += 'fi '
-        
-        '''
+    global level
+    global counter_if
 
+    result = ''
+    # 0: if-then, 1: if-then-else
+    #nest1 = random.randint(0,1)
+    #if nest1:
+        
+    print('\t'*level + 'if ' + generate_relation())
+    print('\t'*level + 'then ')
+    # 0: nested, 1: no nested
+    nest2 = random.randint(0,1)
+    if nest2:
+        while counter_if > 0:
+            counter_if -= 1
+            level += 1
+            generate_if_stmt()
+            level -= 1
+    else:
+        pass
+    if level == 2:
+        print('\t'*level + generate_statSequence())
+        print('\t'*level + 'fi ')
+    elif level == 3:
+        print('\t'*level + generate_statSequence())
+        print('\t'*level + 'fi ')
+    else:
+        print('\t' + generate_statSequence())
+        print('\t' + 'fi ')
+    '''
     else:
         print('\t' + 'if ' + generate_relation())
         then_else = True
@@ -276,10 +289,10 @@ def generate_if_stmt():
         print('\t' '\t' + generate_statSequence())
         then_else = False
         print('\t' + 'fi ')
-    
+    '''
     return result
-
-#generate_if_stmt()
+    
+generate_if_stmt()
 
 def generate_nested_if_stmt():
     global then_else
@@ -358,10 +371,27 @@ def generate_nested_if_stmt():
         
     return result
 
-generate_nested_if_stmt()
+#generate_nested_if_stmt()
 
 def generate_while_stmt():
-        pass
+    print('\t' + 'while ' + generate_relation())
+    print('\t' + 'do')
+    print('\t' + generate_statSequence())
+    print('\t' + 'od ')
+#generate_while_stmt()
+
+def generate_nested_while_stmt():
+    print('\t' + 'while ' + generate_relation())
+    print('\t' + 'do')
+    
+    print('\t' + '\t' + 'while ' + generate_relation())
+    print('\t' + '\t' + 'do')
+    print('\t' + '\t' + generate_statSequence())
+    print('\t' + '\t' + 'od ')
+
+    print('\t' + 'od ')
+#generate_nested_while_stmt()
+
 def generate_return_stmt():
         pass
 
@@ -372,6 +402,7 @@ def last_line():
 last_line = last_line()
 
 '''
+# write output to a file
 def create_output():
     f = open("output.txt", "w")
     f.write(output)
