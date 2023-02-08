@@ -253,33 +253,97 @@ def generate_if_stmt():
     global counter_if
 
     result = ''
-    # 0: if-then, 1: if-then-else
-    #nest1 = random.randint(0,1)
-    #if nest1:
+    
+    nest1 = random.randint(0,1)
+    # 0: if-then
+    if nest1:
         
-    print('\t'*level + 'if ' + generate_relation())
-    print('\t'*level + 'then ')
-    # 0: nested, 1: no nested
-    nest2 = random.randint(0,1)
-    if nest2:
-        while counter_if > 0:
-            counter_if -= 1
-            level += 1
-            generate_if_stmt()
-            level -= 1
+        print('\t'*level + 'if ' + generate_relation())
+        print('\t'*level + 'then ')
+        # 0: nested, 1: no nested
+        nest2 = random.randint(0,1)
+        if nest2:
+            while counter_if > 0:
+                counter_if -= 1
+                level += 1
+                generate_if_stmt()
+                level -= 1
+        else:
+            pass
+        
+        if level == 2:
+            print('\t'*level + generate_statSequence())
+            print('\t'*level + 'fi ')
+        elif level == 3:
+            print('\t'*level + generate_statSequence())
+            print('\t'*level + 'fi ')
+        else:
+            print('\t' + generate_statSequence())
+            print('\t' + 'fi ')
+    #1: if-then-else
     else:
-        pass
-    if level == 2:
-        print('\t'*level + generate_statSequence())
-        print('\t'*level + 'fi ')
-    elif level == 3:
-        print('\t'*level + generate_statSequence())
-        print('\t'*level + 'fi ')
-    else:
-        print('\t' + generate_statSequence())
-        print('\t' + 'fi ')
-    '''
-    else:
+        print('\t'*level + 'if ' + generate_relation())
+        then_else = True
+        print('\t'*level + 'then ')
+        
+        # 0: nested, 1: not nested, under then statement
+        nest3 = random.randint(0,1)
+        if nest3:
+            while counter_if > 0:
+                counter_if -= 1
+                level += 1
+                generate_if_stmt()
+                level -= 1
+        else:
+            pass
+        if level == 2:
+            print('\t'*level + generate_statSequence())
+            print('\t'*level + 'else ')
+            nest4 = random.randint(0,1)
+            if nest4:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level += 1
+                    generate_if_stmt()
+                    level -= 1
+            else:
+                pass
+            print('\t'*level + generate_statSequence())
+            then_else = False
+            print('\t'*level + 'fi ')
+        elif level == 3:
+            print('\t'*level + generate_statSequence())
+            print('\t'*level + 'else ')
+            nest4 = random.randint(0,1)
+            if nest4:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level += 1
+                    generate_if_stmt()
+                    level -= 1
+            else:
+                pass
+            print('\t'*level + generate_statSequence())
+            then_else = False
+            print('\t'*level + 'fi ')
+            
+        else:
+            print('\t' + generate_statSequence())
+            print('\t' + 'else ')
+            nest4 = random.randint(0,1)
+            if nest4:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level += 1
+                    generate_if_stmt()
+                    level -= 1
+            else:
+                pass
+            print('\t' + generate_statSequence())
+            then_else = False
+            print('\t' + 'fi ')
+        
+        '''
         print('\t' + 'if ' + generate_relation())
         then_else = True
         print('\t' + 'then ')
@@ -289,11 +353,11 @@ def generate_if_stmt():
         print('\t' '\t' + generate_statSequence())
         then_else = False
         print('\t' + 'fi ')
-    '''
+        '''
     return result
     
 generate_if_stmt()
-
+'''
 def generate_nested_if_stmt():
     global then_else
     
@@ -323,12 +387,12 @@ def generate_nested_if_stmt():
         
         print('\t' + 'fi ')
         
-        '''
+        
         result += 'if ' + generate_relation() + '\n'
         result += 'then ' + '\n'
         result += generate_statSequence() + '\n'
         result += 'fi '
-        '''
+        
     
     # if-then-else-fi
     else:
@@ -370,8 +434,9 @@ def generate_nested_if_stmt():
         print('\t' + 'fi ')
         
     return result
-
+'''
 #generate_nested_if_stmt()
+
 
 def generate_while_stmt():
     print('\t' + 'while ' + generate_relation())
