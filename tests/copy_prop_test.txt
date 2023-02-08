@@ -6,3 +6,7 @@ main var a,b,c,d,e,z;{
     let d <- c + c;
     let e <- b + c
 }.
+
+
+-- basic common subexpr test
+-- common sub expr just above the instr to be created

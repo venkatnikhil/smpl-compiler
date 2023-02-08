@@ -5,3 +5,6 @@ main var a,b,c; {
         let a <- a;
     fi
 }.
+
+
+-- error because no condition in if

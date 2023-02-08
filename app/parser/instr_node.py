@@ -1,6 +1,5 @@
 from app.tokens import OpCodeEnum
 from typing import Optional
-import re
 
 
 class ConstInstrNode:

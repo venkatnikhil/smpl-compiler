@@ -11,7 +11,6 @@ class Parser:
         self.tokenizer: Tokenizer = Tokenizer(file_name)
         self.sym: Optional[int] = None  # holds current token
         self.cfg: CFG = CFG()
-        self.resolve_count = 1
         self.__next_token()
 
     def __next_token(self) -> None:
@@ -66,7 +65,7 @@ class Parser:
         self.parse_designator(rhs=False)
         self.__check_token(TokenEnum.BECOMES.value)
         instr_num: int = self.parse_expression()
-        self.cfg.update_var_instr_map(self.cfg.curr_bb, ident, instr_num, True)
+        self.cfg.update_var_instr_map(self.cfg.curr_bb, ident, instr_num)
 
     def parse_identifier(self) -> int:
         if self.tokenizer.id not in self.cfg.declared_vars:
@@ -80,7 +79,7 @@ class Parser:
         ident = self.parse_identifier()
         if rhs:  # get instr num only when it is on RHS
             instr_num: int = self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
-            phi_instr_num: Optional[int] = self.cfg.create_phi(ident, instr_num, assignment=False)
+            phi_instr_num: Optional[int] = self.cfg.create_phi_instr(ident, assignment=False)
             return phi_instr_num if phi_instr_num else instr_num
 
     def parse_expression(self) -> int:
@@ -160,13 +159,13 @@ class Parser:
 
         # creating then block instructions
         self.__check_token(TokenEnum.THEN.value)
-        self.cfg.curr_bb = self.cfg.get_bb(then_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(then_bb)
         self.parse_stat_sequence()
         l_parent: int = self.cfg.curr_bb.bb_num
         self.cfg.update_successors(l_parent, [join_bb])
 
         # creating else block instructions
-        self.cfg.curr_bb = self.cfg.get_bb(else_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(else_bb)
         if self.sym == TokenEnum.ELSE.value:
             self.__next_token()
             self.parse_stat_sequence()
@@ -178,7 +177,7 @@ class Parser:
 
         # creating join block instructions
         self.__check_token(TokenEnum.FI.value)
-        self.cfg.curr_bb = self.cfg.get_bb(join_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(join_bb)
         self.cfg.update_predecessors(join_bb, [l_parent, r_parent])
         self.cfg.update_dom_predecessors(join_bb, [if_bb])
         self.cfg.resolve_phi(join_bb)
@@ -190,7 +189,6 @@ class Parser:
         self.cfg.remove_phi_scope()
 
     def parse_while(self) -> None:
-        self.resolve_count += 1
         self.__check_token(TokenEnum.WHILE.value)
 
         # create while, do and join blocks
@@ -202,12 +200,12 @@ class Parser:
         self.cfg.add_phi_scope(while_bb, TokenEnum.WHILE.value)
 
         # creating while block instructions
-        self.cfg.curr_bb = self.cfg.get_bb(while_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(while_bb)
         br_instr: int = self.parse_relation()
 
         # creating do block instructions
         self.__check_token(TokenEnum.DO.value)
-        self.cfg.curr_bb = self.cfg.get_bb(do_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(do_bb)
         self.parse_stat_sequence()
         r_parent: int = self.cfg.curr_bb.bb_num
 
@@ -220,14 +218,12 @@ class Parser:
 
         # end while parsing
         self.__check_token(TokenEnum.OD.value)
-        self.cfg.curr_bb = self.cfg.get_bb(follow_bb)
+        self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(follow_bb)
 
         # updating the branch instruction from while relation to start of follow
         self.cfg.update_instr(br_instr, {"right": follow_bb})
 
-        for i in range(self.resolve_count):
-            self.cfg.resolve_phi(while_bb)
-        self.resolve_count -= 1
+        self.cfg.resolve_phi(while_bb)
 
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:

@@ -1,0 +1,14 @@
+main var i,j,x,y; {
+    while x < 10
+    do
+        let x <- (i + 1) * i;
+        let y <- (j + 1) * j;
+        while y < 10
+        do
+            let x <- (i + 1) * i;
+            let y <- (j + 1) * j;
+            let i <- i + 1;
+        od;
+        let i <- i + 1
+    od
+}.

@@ -7,3 +7,7 @@ main var a,f,z;{
     fi;
     let z <- z - z + z;
 }.
+
+
+-- expr in condition
+-- subexpr propagating in every block

@@ -10,3 +10,7 @@ main var a,b,c;{
     fi;
     let c <- c + c;
 }.
+
+
+-- subexpr in every block
+-- phi (x) (x) deleted for c

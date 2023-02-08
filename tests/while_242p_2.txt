@@ -1,0 +1,19 @@
+main var i,j,x,y; {
+    let i <- 1;
+    let x <- 0;
+    let y <- 0;
+    let j <- i;
+
+    while x < 10
+    do
+        let x <- i + 1;
+        let x <- x + 1;
+        let y <- i + 1 + 1;
+        let i <- i + 1
+    od
+}.
+
+
+-- x modified twice in while
+-- y subexpr resolving to x
+-- same phis multiple times

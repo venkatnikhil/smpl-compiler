@@ -10,3 +10,6 @@ main var i,j,x,y; {
         fi;
     od
 }.
+
+-- ALL PHIS ELIMINATED - GOD LEVEL TEST CASE
+-- BRANCH INSTR LHS SHOULD BE RESOLVED

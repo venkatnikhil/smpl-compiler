@@ -1,10 +1,11 @@
 from app.custom_types import InstrNodeType, InstrNodeActual
 from app.parser.basic_blocks import BB
 from app.parser.instr_graph import InstrGraph
-from app.parser.instr_node import OpInstrNode, EmptyInstrNode, SingleOpInstrNode
+from app.parser.instr_node import OpInstrNode, EmptyInstrNode
 from app.tokens import OpCodeEnum, RELOP_TOKEN_OPCODE, TokenEnum
 from typing import Optional, Union
 from app.tokenizer import Tokenizer
+from copy import deepcopy
 
 
 class CFG:
@@ -18,7 +19,7 @@ class CFG:
         self._dom_predecessors: list[int] = list()
         self._bb_map: list[BB] = list()
         self.declared_vars: set[int] = set()
-        self.excluded_instrs: set[OpCodeEnum] = {RELOP_TOKEN_OPCODE.values()}.union(
+        self.excluded_instrs: set[OpCodeEnum] = set(RELOP_TOKEN_OPCODE.values()).union(
             {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value})
         self._phi_scope: list[tuple[int, TokenEnum]] = list()
 
@@ -36,100 +37,124 @@ class CFG:
     def get_predecessors(self, bb: int) -> list[int]:
         return self._predecessors[bb]
 
+    def get_successors(self, bb: int) -> list[int]:
+        return self._successors[bb]
+
     def remove_phi_scope(self) -> None:
         self._phi_scope.pop()
 
     def get_phi_scope(self) -> Optional[tuple[int, TokenEnum]]:
         if self._phi_scope:
             return self._phi_scope[-1]
-        return None
 
-    def create_phi(self, ident: int, instr_num: int, assignment: bool = False) -> Optional[int]:
+    def create_phi_instr(self, ident: int, assignment: bool = False) -> Optional[int]:
         phi_scope: Optional[tuple[int, TokenEnum]] = self.get_phi_scope()
 
-        if phi_scope:
-            phi_bb_num: int = phi_scope[0]
-            phi_bb: BB = self.get_bb(phi_bb_num)
-            # print(phi_bb_num, phi_scope[1])
-            is_while: bool = True if phi_scope[1] == TokenEnum.WHILE.value else False
+        phi_bb_num: int
+        phi_bb_type: TokenEnum
 
-            instr_map: dict[int, int] = phi_bb.get_var_instr_map()
-            if ident in instr_map.keys():
-                return
+        if not phi_scope:
+            return
 
-            if assignment:
-                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
-                                                           right=None)
-                self.remove_phi_scope()
-                self.update_var_instr_map(phi_bb, ident, phi_instr_num, True)
-                self.add_phi_scope(phi_scope[0], phi_scope[1])
+        phi_bb_num, phi_bb_type = phi_scope
+        phi_bb: BB = self.get_bb_from_bb_num(phi_bb_num)
 
-            if not assignment and is_while:
-                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
-                                                           right=None)
-                self.remove_phi_scope()
-                self.update_var_instr_map(phi_bb, ident, phi_instr_num, True)
-                self.add_phi_scope(phi_scope[0], phi_scope[1])
-                return phi_instr_num
+        if not assignment and phi_bb_type != TokenEnum.WHILE.value:
+            return  # phis are only needed for IF in case of assignments
 
-    def update_var_instr_map(self, bb: BB, ident: int, instr_num: int, assign: bool = False) -> None:
+        if ident in phi_bb.get_var_instr_map():
+            return  # phi would've already been created for the identifier if required
+
+        phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
+                                                   right=None)
+
+        # create phi instrs for all scopes above the current one
+        self.remove_phi_scope()
+        self.update_var_instr_map(phi_bb, ident, phi_instr_num)
+        self.add_phi_scope(phi_scope[0], phi_scope[1])
+        return phi_instr_num
+
+    def update_var_instr_map(self, bb: BB, ident: int, instr_num: int) -> None:
         bb.update_var_instr_map(ident, instr_num)
-        if bb.bb_num != 0:
-            self.create_phi(ident, instr_num, assignment=assign)
+        if bb is not self.const_bb:
+            self.create_phi_instr(ident, assignment=True)  # we try to create phi instr for every assignment
+
+    def resolve_instr(self, bb: BB, ident: int, instr: InstrNodeActual, resolved_instr_num: int) -> None:
+        # 1. update the var -> instr num map
+        # 2. instr should be replaced by resolved_instr_num wherever used
+        # 3. delete instr
+        bb.update_var_instr_map(ident, resolved_instr_num)  # map ident to resolved instr num
+        self.update_resolved_instr(bb.bb_num, bb.bb_num, {instr.instr_num: resolved_instr_num}, set())
+        self.delete_instr(bb, instr)
 
     def resolve_phi(self, bb_num: int) -> None:
-        bb = self.get_bb(bb_num)
-        var_instr_map = bb.get_var_instr_map()
+        bb: BB = self.get_bb_from_bb_num(bb_num)
+        var_instr_map: dict[int, int] = bb.get_var_instr_map()
+
         for ident, instr_num in var_instr_map.items():
-            instr = self.get_actual_instr(instr_num)
-            if instr.opcode == OpCodeEnum.PHI.value:
-                l_instr = instr.left
-                r_instr = instr.right
-                if l_instr is None:
-                    l_instr = self.get_var_instr_num(self._predecessors[bb_num][0], ident, {bb_num})
-                if r_instr is None:
-                    r_instr = self.get_var_instr_num(self._predecessors[bb_num][1], ident, {bb_num})
+            instr = self.get_instr(instr_num)
+            if instr.opcode != OpCodeEnum.PHI.value:
+                continue
 
-                if l_instr == r_instr or l_instr is None or r_instr is None or r_instr == instr_num:
-                    # TODO: propagate the new instr_num for ident to successors in case of while
-                    resolved_instr_num: Optional[int] = l_instr if r_instr is None else l_instr
-                    assert resolved_instr_num is not None, f"Error: All paths for {Tokenizer.id2string(ident)} have " \
-                                                           f"value None"
-                    bb.update_var_instr_map(ident, resolved_instr_num)
-                    self.update_resolved_instr(bb_num, {instr_num: resolved_instr_num}, set())
-                    self.delete_instr(bb, instr)
-                else:
+            l_instr: Optional[int] = instr.left
+            r_instr: Optional[int] = instr.right
+
+            if l_instr is None:
+                l_instr = self.get_var_instr_num(self._predecessors[bb_num][0], ident, {bb_num})
+            if r_instr is None:
+                r_instr = self.get_var_instr_num(self._predecessors[bb_num][1], ident, {bb_num})
+
+            assert l_instr is not None or r_instr is not None, f"Error: All paths for {Tokenizer.id2string(ident)} " \
+                                                               f"have value None"
+
+            if l_instr == r_instr or l_instr is None or r_instr is None or r_instr == instr_num:
+                # phi no longer required -> resolve and delete
+                # possible cases -
+                # 1. phi (x) (x)
+                # 2. phi None (x) or phi (x) None
+                # 3. (y) -> phi (x) (y) -- in case of while when r_instr is looped back to current phi
+                resolved_instr_num: Optional[int] = l_instr if l_instr is not None else r_instr
+            else:
+                resolved_instr_num: Optional[int] = self.get_common_subexpr(bb, instr.opcode, instr_num,
+                                                                            left=l_instr, right=r_instr)
+                if resolved_instr_num is None:
                     self.update_instr(instr_num, {"left": l_instr, "right": r_instr})
+                    continue
 
-                # if self.get_phi_scope() is not None and self.get_phi_scope()[0] is TokenEnum.WHILE.value:
-                #     # TODO: resolve the changed instructions in the successors for the case of while
-                #     continue
+            self.resolve_instr(bb, ident, instr, resolved_instr_num)
 
-    def update_resolved_instr(self, bb_num: int, update_map: dict[int, int], visited_bb: set[int]) -> None:
+    def update_resolved_instr(self, bb_num: int, first_bb: int, update_map: dict[int, int], visited_bb: set[int]) -> None:
+        # TODO: convert to iterative dfs
         if bb_num in visited_bb:
             return
 
-        cur_bb: BB = self.get_bb(bb_num)
+        cur_bb: BB = self.get_bb_from_bb_num(bb_num)
         instr_remove_list: list[InstrNodeActual] = []
-        for instr_num in cur_bb.get_instr_list():
-            instr: InstrNodeActual = self.get_actual_instr(instr_num)
-            if instr.opcode not in self.excluded_instrs or instr.opcode == OpCodeEnum.PHI.value:
-                if instr.left in update_map.keys():
-                    instr.left = update_map[instr.left]
-                if instr.right in update_map.keys():
-                    instr.right = update_map[instr.right]
+        update_from_join: bool = False
 
-                update_instr: Optional[int] = None
-                if instr.opcode == OpCodeEnum.PHI.value:
-                    if instr.left == instr.right and instr.left is not None:
-                        update_instr = instr.left
-                        # continue
-                else:
-                    update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
-                                                                  right=instr.right)
-                if update_instr:
-                    update_map.update({instr_num: update_instr})
-                    instr_remove_list.append(instr)
+        for instr_num in cur_bb.get_instr_list():
+            instr: InstrNodeActual = self.get_instr(instr_num)
+            if instr.opcode in self.excluded_instrs and instr.opcode != OpCodeEnum.PHI.value:
+                if instr.opcode in RELOP_TOKEN_OPCODE.values() and instr.left in update_map:
+                    instr.left = update_map[instr.left]
+                continue
+
+            if instr.left in update_map:
+                instr.left = update_map[instr.left]
+            if instr.right in update_map:
+                instr.right = update_map[instr.right]
+
+            update_instr: Optional[int] = None
+            if instr.opcode == OpCodeEnum.PHI.value:
+                if instr.left == instr.right and instr.left is not None:
+                    update_instr = instr.left
+            else:
+                update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
+                                                       right=instr.right)
+            if update_instr is not None:
+                update_from_join = True
+                update_map.update({instr_num: update_instr})  # common subexpr found; replace original instr
+                instr_remove_list.append(instr)
 
         for instr in instr_remove_list:
             self.delete_instr(cur_bb, instr)
@@ -140,18 +165,23 @@ class CFG:
             if var_instr_map[key] in update_map:
                 cur_bb.update_var_instr_map(key, update_map[var_instr_map[key]])
 
+        if update_from_join:
+            self.update_resolved_instr(first_bb, first_bb, deepcopy(update_map), set())
+            return
+
         visited_bb.add(bb_num)
 
         for successor_bb_num in self._successors[bb_num]:
-            self.update_resolved_instr(successor_bb_num, update_map, visited_bb)
+            self.update_resolved_instr(successor_bb_num, first_bb, deepcopy(update_map), visited_bb)
 
     def delete_instr(self, bb: BB, instr: InstrNodeActual) -> None:
         # Remove instr from bb list
         instr_num: int = instr.instr_num
         bb.remove_from_instr_list(instr_num)
-        bb.remove_from_opcode_instr_order(instr.opcode, instr_num)
+        if instr.opcode not in self.excluded_instrs:
+            bb.remove_from_opcode_instr_order(instr.opcode, instr_num)
 
-    def get_bb(self, bb_num: int) -> BB:
+    def get_bb_from_bb_num(self, bb_num: int) -> BB:
         return self._bb_map[bb_num]
 
     def update_bb_map(self, bb_obj: BB) -> None:
@@ -175,16 +205,18 @@ class CFG:
     def __initialize_cfg(self) -> None:
         bb0: int = self.create_bb([])
         bb1: int = self.create_bb([bb0], [])
-        self.const_bb = self.get_bb(bb0)
+        self.const_bb = self.get_bb_from_bb_num(bb0)
 
     def get_common_subexpr(self, bb: BB, opcode: OpCodeEnum, cur_instr_num: int = -1, **kwargs) -> Optional[int]:
         instrs: list[int] = bb.opcode_instr_order[opcode]
+
         if cur_instr_num in instrs:
             idx: int = instrs.index(cur_instr_num)
         else:
-            idx: int = len(instrs) - 1
+            idx: int = len(instrs)
 
         if idx != 0:
+            # DO NOT search for common subexpr AFTER current instr
             for instr in instrs[idx - 1::-1]:
                 if self._instr_graph.get_instr(instr).equals(opcode, **kwargs):
                     return instr
@@ -193,13 +225,13 @@ class CFG:
         if dom_pred == -1:
             return None
 
-        return self.get_common_subexpr(self.get_bb(dom_pred), opcode, **kwargs)
+        return self.get_common_subexpr(self.get_bb_from_bb_num(dom_pred), opcode, **kwargs)
 
     def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, bb: Optional[int] = None, **kwargs) -> int:
         if bb is None:
             bb = self.curr_bb
         else:
-            bb = self.get_bb(bb)
+            bb = self.get_bb_from_bb_num(bb)
 
         if opcode not in self.excluded_instrs:
             existing_instr = self.get_common_subexpr(bb, opcode, **kwargs)
@@ -212,22 +244,24 @@ class CFG:
                 instr_num = None  # first instr is not an Empty instr; create new instr node with new instr num
             else:
                 bb.remove_empty_instr()  # first instr is Empty instr; create new instr node with **same** instr num
+
         instr_num: int = self._instr_graph.build_instr_node(node_type, opcode, instr_num, **kwargs)
         bb.update_instr_list(instr_num, is_phi=opcode == OpCodeEnum.PHI.value)
-        bb.update_opcode_instr_order(opcode, instr_num)
+        if opcode not in self.excluded_instrs:
+            bb.update_opcode_instr_order(opcode, instr_num)
         return instr_num
 
     def get_var_instr_num(self, bb: Union[BB, int], ident: int, visited_bb: set[int]) -> Optional[int]:
         if isinstance(bb, int):
-            bb = self.get_bb(bb)
+            bb = self.get_bb_from_bb_num(bb)
         if bb.bb_num in visited_bb:
             return
+
         visited_bb.add(bb.bb_num)
         if bb.check_instr_exists(ident):
             return bb.get_var_instr_num(ident)
 
         search_space: list[int] = self._predecessors[bb.bb_num]
-        # res: list[int] = list()
         res: set[int] = set()
         for node in search_space:
             instr = self.get_var_instr_num(self._bb_map[node], ident, visited_bb)
@@ -235,7 +269,6 @@ class CFG:
                 res.add(instr)
 
         assert len(res) <= 1, f"2 different resolutions found for phi for ident: {Tokenizer.id2string(ident)}"
-        # instr_num: Optional[int] = None
         if bb.bb_num == 0:
             print(f"Warning!: {Tokenizer.id2string(ident)} referenced before assignment!")
             return 0
@@ -243,18 +276,6 @@ class CFG:
             return res.pop()
         else:
             return
-
-        # if len(res) > 1 and res[0] != res[1]:
-        #     instr_num = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=bb.bb_num, left=res[0],
-        #                                       right=res[1])
-        #     self.update_var_instr_map(bb, ident, instr_num)
-        # elif len(set(res)) == 1:
-        #     instr_num = res[0]
-        # elif bb.bb_num == 0:
-        #     print(f"Warning!: {Tokenizer.id2string(ident)} referenced before assignment!")
-        #     instr_num = 0  # uninitialized vars
-
-        # return instr_num
 
     def create_bb(self, predecessors: list[int], dom_predecessors: Optional[list[int]] = None) -> int:
         if dom_predecessors is None:
@@ -274,7 +295,7 @@ class CFG:
         self.bb_num += 1
         return self.curr_bb.bb_num
 
-    def get_actual_instr(self, instr_num: int) -> InstrNodeActual:
+    def get_instr(self, instr_num: int) -> InstrNodeActual:
         return self._instr_graph.get_instr(instr_num)
 
     def update_instr(self, instr_num: int, change_dict: dict[str, int]) -> None:
@@ -286,9 +307,9 @@ class CFG:
         for bb in self._bb_map:
             instr: InstrNodeActual = self._instr_graph.get_instr(bb.get_last_instr_num())
             if instr.opcode == OpCodeEnum.BRA.value:
-                instr.left = self.get_bb(instr.left).get_first_instr_num()
+                instr.left = self.get_bb_from_bb_num(instr.left).get_first_instr_num()
             elif instr.opcode in set(RELOP_TOKEN_OPCODE.values()):
-                instr.right = self.get_bb(instr.right).get_first_instr_num()
+                instr.right = self.get_bb_from_bb_num(instr.right).get_first_instr_num()
 
     def debug(self) -> None:
         for bb in self._bb_map:

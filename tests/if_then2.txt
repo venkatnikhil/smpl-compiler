@@ -11,3 +11,5 @@ main var a,b,c;{
         fi
     fi
 }.
+
+-- a < 11 - common subexpr

@@ -7,17 +7,21 @@ from app.custom_types import InstrNodeActual
 from app.tokenizer import Tokenizer
 
 
+colors = ["lightcoral", "grey67", "royalblue4"]
+c = 0
+
+
 class IRViz:
     def __init__(self, cfg: CFG, filename: str = None) -> None:
         self.cfg = cfg
-        self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG")
+        self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG", graph_attr={"ranksep": "0.75", "nodesep": "0.5"})
         self.filename = "graph" if filename is None else filename
         self.dir = "./ir_viz_tool/tests"
 
     def get_bb_instrs(self, bb: BB) -> str:
         instr_str: str = ""
         for instr in bb.get_instr_list():
-            actual_instr: InstrNodeActual = self.cfg.get_actual_instr(instr)
+            actual_instr: InstrNodeActual = self.cfg.get_instr(instr)
             instr_str += f"{str(actual_instr)} | "
 
         return instr_str[:-2]
@@ -29,11 +33,13 @@ class IRViz:
         self.graph.edge(f"BB{dom_bb}:b", f"BB{bb.bb_num}:b", label="dom", style="dotted")
 
     def add_pred_edge(self, bb: BB) -> None:
+        global c
         pred_bb: list[int] = self.cfg.get_predecessors(bb.bb_num)
         if not pred_bb:
             return
         for pred in pred_bb:
-            self.graph.edge(f"BB{pred}:s", f"BB{bb.bb_num}:n")
+            self.graph.edge(f"BB{pred}:s", f"BB{bb.bb_num}:n", color=colors[c % 3])
+            c += 1
 
     def fmt_var_instr_map(self, bb: BB) -> str:
         res: str = ""
@@ -51,7 +57,7 @@ class IRViz:
         def __create_basic_block(shape: str = "record") -> None:
             nonlocal name, label, var_instr_map
             label = f"<b>{name.upper()} | {{{label}}} | {{{var_instr_map}}}"
-            self.graph.node(name=name, label=label, shape=shape)
+            self.graph.node(name=name, label=label, shape=shape, ordering="out")
 
         for bb in self.cfg.get_bb_map():
             label: str = self.get_bb_instrs(bb)
