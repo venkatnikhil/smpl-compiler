@@ -7,15 +7,18 @@ import string
 # counter: for if-statement, while-statement, like 3
 # done - counter: for expression; we could choose the counter value randomly as well
 # the let could be more than one, also need let after the if-statement
-# generate txt file as output
+# stop for now - generate txt file as output
 # consider netsted if-else
+# add ; alway after fi
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
 repetition = 2 # number of repetition for {}
 counter_expr = 2 # counter variable for expression
 counter_if = 1 # counter variable for nested if-else statement
-level = 1 # control the number of indentation
+level_if = 1 # control the number of indentation for nested if-else
+counter_while = 1 # counter variable for nested while statement
+level_while = 1 # control the number of indentation for nested while
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
 only_number = True # first assignment, we want only number as factor
@@ -232,10 +235,6 @@ def generate_statSequence():
         while nest2 > 0:
             exp += str('; ') + str(generate_statement())
             nest2 -= 1
-        
-    nest3 = random.randint(0,1)
-    if nest3:
-        exp += str(';')
     
     #print(exp)
     return exp
@@ -249,7 +248,7 @@ def generate_funcCall():
 
 def generate_if_stmt():
     global then_else
-    global level
+    global level_if
     global counter_if
 
     result = ''
@@ -258,74 +257,74 @@ def generate_if_stmt():
     # 0: if-then
     if nest1:
         
-        print('\t'*level + 'if ' + generate_relation())
-        print('\t'*level + 'then ')
+        print('\t'*level_if + 'if ' + generate_relation())
+        print('\t'*level_if + 'then ')
         # 0: nested, 1: no nested
         nest2 = random.randint(0,1)
         if nest2:
             while counter_if > 0:
                 counter_if -= 1
-                level += 1
+                level_if += 1
                 generate_if_stmt()
-                level -= 1
+                level_if -= 1
         else:
             pass
         
-        if level == 2:
-            print('\t'*level + generate_statSequence())
-            print('\t'*level + 'fi ')
-        elif level == 3:
-            print('\t'*level + generate_statSequence())
-            print('\t'*level + 'fi ')
+        if level_if == 2:
+            print('\t'*level_if + generate_statSequence())
+            print('\t'*level_if + 'fi;')
+        elif level_if == 3:
+            print('\t'*level_if + generate_statSequence())
+            print('\t'*level_if + 'fi;')
         else:
             print('\t' + generate_statSequence())
-            print('\t' + 'fi ')
+            print('\t' + 'fi;')
     #1: if-then-else
     else:
-        print('\t'*level + 'if ' + generate_relation())
+        print('\t'*level_if + 'if ' + generate_relation())
         then_else = True
-        print('\t'*level + 'then ')
+        print('\t'*level_if + 'then ')
         
         # 0: nested, 1: not nested, under then statement
         nest3 = random.randint(0,1)
         if nest3:
             while counter_if > 0:
                 counter_if -= 1
-                level += 1
+                level_if += 1
                 generate_if_stmt()
-                level -= 1
+                level_if -= 1
         else:
             pass
-        if level == 2:
-            print('\t'*level + generate_statSequence())
-            print('\t'*level + 'else ')
+        if level_if == 2:
+            print('\t'*level_if + generate_statSequence())
+            print('\t'*level_if + 'else ')
             nest4 = random.randint(0,1)
             if nest4:
                 while counter_if > 0:
                     counter_if -= 1
-                    level += 1
+                    level_if += 1
                     generate_if_stmt()
-                    level -= 1
+                    level_if -= 1
             else:
                 pass
-            print('\t'*level + generate_statSequence())
+            print('\t'*level_if + generate_statSequence())
             then_else = False
-            print('\t'*level + 'fi ')
-        elif level == 3:
-            print('\t'*level + generate_statSequence())
-            print('\t'*level + 'else ')
+            print('\t'*level_if + 'fi;')
+        elif level_if == 3:
+            print('\t'*level_if + generate_statSequence())
+            print('\t'*level_if + 'else ')
             nest4 = random.randint(0,1)
             if nest4:
                 while counter_if > 0:
                     counter_if -= 1
-                    level += 1
+                    level_if += 1
                     generate_if_stmt()
-                    level -= 1
+                    level_if -= 1
             else:
                 pass
-            print('\t'*level + generate_statSequence())
+            print('\t'*level_if + generate_statSequence())
             then_else = False
-            print('\t'*level + 'fi ')
+            print('\t'*level_if + 'fi;')
             
         else:
             print('\t' + generate_statSequence())
@@ -334,128 +333,48 @@ def generate_if_stmt():
             if nest4:
                 while counter_if > 0:
                     counter_if -= 1
-                    level += 1
+                    level_if += 1
                     generate_if_stmt()
-                    level -= 1
+                    level_if -= 1
             else:
                 pass
             print('\t' + generate_statSequence())
             then_else = False
-            print('\t' + 'fi ')
-        
-        '''
-        print('\t' + 'if ' + generate_relation())
-        then_else = True
-        print('\t' + 'then ')
-        print('\t' '\t' + generate_statSequence())
-        
-        print('\t' + 'else ')
-        print('\t' '\t' + generate_statSequence())
-        then_else = False
-        print('\t' + 'fi ')
-        '''
-    return result
-    
-generate_if_stmt()
-'''
-def generate_nested_if_stmt():
-    global then_else
-    
-    result = ''
-    nest1 = random.randint(0,1)
-    # if-then-fi
-    if nest1:
-
-        print('\t' + 'if ' + generate_relation())
-        print('\t' + 'then ')
-        
-        print('\t' + generate_statSequence())
-        
-        
-        nest2 = random.randint(0,1)
-        if nest2:
-            print('\t' + '\t' + 'if ' + generate_relation())
-            then_else = True
-            print('\t' + '\t' + 'then ')
-            print('\t' + '\t' + generate_statSequence())
-            print('\t' + '\t' + 'else ')
-            print('\t' + '\t' + generate_statSequence())
-            then_else = False
-            print('\t' + '\t' + 'fi ')
-        else:
-            pass
-        
-        print('\t' + 'fi ')
-        
-        
-        result += 'if ' + generate_relation() + '\n'
-        result += 'then ' + '\n'
-        result += generate_statSequence() + '\n'
-        result += 'fi '
-        
-    
-    # if-then-else-fi
-    else:
-        print('\t' + 'if ' + generate_relation())
-        then_else = True
-        print('\t' + 'then ')
-        print('\t' + generate_statSequence())
-
-        nest2 = random.randint(0,1)
-        if nest2:
-            print('\t' + '\t' + 'if ' + generate_relation())
-            then_else = True
-            print('\t' + '\t' + 'then ')
-            print('\t' + '\t' + generate_statSequence())
-            print('\t' + '\t' + 'else ')
-            print('\t' + '\t' + generate_statSequence())
-            then_else = False
-            print('\t' + '\t' + 'fi ')
-        else:
-            pass
-        
-        print('\t' + 'else ')
-        print('\t' + generate_statSequence())
-        then_else = False
-
-        nest3 = random.randint(0,1)
-        if nest3:
-            print('\t' + '\t' + 'if ' + generate_relation())
-            then_else = True
-            print('\t' + '\t' + 'then ')
-            print('\t' + '\t' + generate_statSequence())
-            print('\t' + '\t' + 'else ')
-            print('\t' + '\t' + generate_statSequence())
-            then_else = False
-            print('\t' + '\t' + 'fi ')
-        else:
-            pass
-
-        print('\t' + 'fi ')
+            print('\t' + 'fi;')
         
     return result
-'''
-#generate_nested_if_stmt()
-
+    
+#generate_if_stmt()
 
 def generate_while_stmt():
-    print('\t' + 'while ' + generate_relation())
-    print('\t' + 'do')
-    print('\t' + generate_statSequence())
-    print('\t' + 'od ')
-#generate_while_stmt()
+    global level_while
+    global counter_while
 
-def generate_nested_while_stmt():
-    print('\t' + 'while ' + generate_relation())
-    print('\t' + 'do')
-    
-    print('\t' + '\t' + 'while ' + generate_relation())
-    print('\t' + '\t' + 'do')
-    print('\t' + '\t' + generate_statSequence())
-    print('\t' + '\t' + 'od ')
+    print('\t'*level_while + 'while ' + generate_relation())
+    print('\t'*level_while + 'do')
 
-    print('\t' + 'od ')
-#generate_nested_while_stmt()
+    # 0: nested, 1: no nested
+    nest1 = random.randint(0,1)
+    if nest1:
+        while counter_while > 0:
+            counter_while -= 1
+            level_while += 1
+            generate_while_stmt()
+            level_while -= 1
+    else:
+        pass
+        
+    if level_while == 2:
+        print('\t'*level_while + generate_statSequence())
+        print('\t'*level_while + 'od;')
+    elif level_while == 3:
+        print('\t'*level_while + generate_statSequence())
+        print('\t'*level_while + 'od;')
+    else:
+        print('\t' + generate_statSequence())
+        print('\t' + 'od;')
+
+generate_while_stmt()
 
 def generate_return_stmt():
         pass
