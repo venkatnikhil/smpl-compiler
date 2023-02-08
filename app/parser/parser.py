@@ -211,7 +211,7 @@ class Parser:
 
         self.cfg.update_predecessors(while_bb, [r_parent])
         self.cfg.update_successors(r_parent, [while_bb])
-        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, do_bb, left=while_bb)
+        self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, r_parent, left=while_bb)
 
         # updating phi scope at the end of while
         self.cfg.remove_phi_scope()

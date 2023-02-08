@@ -87,19 +87,20 @@ class CFG:
                 if r_instr is None:
                     r_instr = self.get_var_instr_num(self._predecessors[bb_num][1], ident, {bb_num})
 
-                if l_instr == r_instr or l_instr is None or r_instr is None:
+                if l_instr == r_instr or l_instr is None or r_instr is None or r_instr == instr_num:
                     # TODO: propagate the new instr_num for ident to successors in case of while
                     resolved_instr_num: Optional[int] = l_instr if r_instr is None else l_instr
-                    assert resolved_instr_num, f"Error: All paths for {Tokenizer.id2string(ident)} have value None"
+                    assert resolved_instr_num is not None, f"Error: All paths for {Tokenizer.id2string(ident)} have " \
+                                                           f"value None"
                     bb.update_var_instr_map(ident, resolved_instr_num)
                     self.update_resolved_instr(bb_num, {instr_num: resolved_instr_num}, set())
                     self.delete_instr(bb, instr)
                 else:
                     self.update_instr(instr_num, {"left": l_instr, "right": r_instr})
 
-                if self.get_phi_scope() is not None and self.get_phi_scope()[0] is TokenEnum.WHILE.value:
-                    # TODO: resolve the changed instructions in the successors for the case of while
-                    continue
+                # if self.get_phi_scope() is not None and self.get_phi_scope()[0] is TokenEnum.WHILE.value:
+                #     # TODO: resolve the changed instructions in the successors for the case of while
+                #     continue
 
     def update_resolved_instr(self, bb_num: int, update_map: dict[int, int], visited_bb: set[int]) -> None:
         if bb_num in visited_bb:
@@ -108,7 +109,7 @@ class CFG:
         cur_bb: BB = self.get_bb(bb_num)
         instr_remove_list: list[InstrNodeActual] = []
         for instr_num in cur_bb.get_instr_list():
-            instr: InstrNodeActual = self.get_instr(instr_num)
+            instr: InstrNodeActual = self.get_actual_instr(instr_num)
             if instr.opcode not in self.excluded_instrs:
                 if instr.left in update_map.keys():
                     instr.left = update_map[instr.left]
