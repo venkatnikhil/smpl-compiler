@@ -13,6 +13,7 @@ import string
 # done - while
 # done - while nested while
 # done - while nested if-then-else
+# done - if-then-else nested while
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
@@ -265,11 +266,20 @@ def generate_if_stmt():
         # 0: nested, 1: no nested
         nest2 = random.randint(0,1)
         if nest2:
-            while counter_if > 0:
-                counter_if -= 1
-                level_if += 1
-                generate_if_stmt()
-                level_if -= 1
+            # 0: nested if-else, 1: nested while
+            nest3 = random.randint(0,1)
+            if nest3:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level_if += 1
+                    generate_if_stmt()
+                    level_if -= 1
+            else:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level_if += 1
+                    generate_while_stmt()
+                    level_if -= 1
         else:
             pass
         
@@ -282,31 +292,44 @@ def generate_if_stmt():
         else:
             print('\t' + generate_statSequence())
             print('\t' + 'fi;')
+    
     #1: if-then-else
     else:
         print('\t'*level_if + 'if ' + generate_relation())
         then_else = True
         print('\t'*level_if + 'then ')
         
-        # 0: nested, 1: not nested, under then statement
-        nest3 = random.randint(0,1)
-        if nest3:
+        # 0: nested if-else, 1: nested while, 2: not nested, under then statement
+        nest4 = random.randint(0,2)
+        if nest4 == 0:
             while counter_if > 0:
                 counter_if -= 1
                 level_if += 1
                 generate_if_stmt()
+                level_if -= 1
+        elif nest4 == 1:
+            while counter_if > 0:
+                counter_if -= 1
+                level_if += 1
+                generate_while_stmt()
                 level_if -= 1
         else:
             pass
         if level_if == 2:
             print('\t'*level_if + generate_statSequence())
             print('\t'*level_if + 'else ')
-            nest4 = random.randint(0,1)
-            if nest4:
+            nest5 = random.randint(0,2)
+            if nest5 == 0:
                 while counter_if > 0:
                     counter_if -= 1
                     level_if += 1
                     generate_if_stmt()
+                    level_if -= 1
+            elif nest5 == 1:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level_if += 1
+                    generate_while_stmt()
                     level_if -= 1
             else:
                 pass
@@ -316,12 +339,18 @@ def generate_if_stmt():
         elif level_if == 3:
             print('\t'*level_if + generate_statSequence())
             print('\t'*level_if + 'else ')
-            nest4 = random.randint(0,1)
-            if nest4:
+            nest6 = random.randint(0,2)
+            if nest6 == 0:
                 while counter_if > 0:
                     counter_if -= 1
                     level_if += 1
                     generate_if_stmt()
+                    level_if -= 1
+            elif nest6 == 1:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level_if += 1
+                    generate_while_stmt()
                     level_if -= 1
             else:
                 pass
@@ -332,12 +361,18 @@ def generate_if_stmt():
         else:
             print('\t' + generate_statSequence())
             print('\t' + 'else ')
-            nest4 = random.randint(0,1)
-            if nest4:
+            nest7 = random.randint(0,2)
+            if nest7 == 0:
                 while counter_if > 0:
                     counter_if -= 1
                     level_if += 1
                     generate_if_stmt()
+                    level_if -= 1
+            elif nest7 == 1:
+                while counter_if > 0:
+                    counter_if -= 1
+                    level_if += 1
+                    generate_while_stmt()
                     level_if -= 1
             else:
                 pass
@@ -346,8 +381,6 @@ def generate_if_stmt():
             print('\t' + 'fi;')
         
     return result
-    
-#generate_if_stmt()
 
 def generate_while_stmt():
     global level_while
@@ -383,7 +416,8 @@ def generate_while_stmt():
         print('\t' + generate_statSequence())
         print('\t' + 'od;')
 
-generate_while_stmt()
+#generate_while_stmt()
+generate_if_stmt()
 
 def generate_return_stmt():
         pass
