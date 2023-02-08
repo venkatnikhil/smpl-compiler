@@ -14,6 +14,8 @@ import string
 # done - while nested while
 # done - while nested if-then-else
 # done - if-then-else nested while
+# done - while, while, no nested
+# done - while, then two nested while
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
@@ -23,6 +25,7 @@ counter_if = 1 # counter variable for nested if-else statement
 level_if = 1 # control the number of indentation for nested if-else
 counter_while = 1 # counter variable for nested while statement
 level_while = 1 # control the number of indentation for nested while
+repetition_while = 2
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
 only_number = True # first assignment, we want only number as factor
@@ -385,6 +388,7 @@ def generate_if_stmt():
 def generate_while_stmt():
     global level_while
     global counter_while
+    global repetition_while
 
     print('\t'*level_while + 'while ' + generate_relation())
     print('\t'*level_while + 'do')
@@ -395,7 +399,10 @@ def generate_while_stmt():
         while counter_while > 0:
             counter_while -= 1
             level_while += 1
-            generate_while_stmt()
+            #generate_while_stmt()
+            while repetition_while > 0:
+                generate_while_stmt()
+                repetition_while -= 1
             level_while -= 1
     elif nest1 == 1:
         while counter_while > 0:
@@ -416,8 +423,11 @@ def generate_while_stmt():
         print('\t' + generate_statSequence())
         print('\t' + 'od;')
 
-#generate_while_stmt()
-generate_if_stmt()
+    
+while repetition_while > 0:
+    generate_while_stmt()
+    repetition_while -= 1
+#generate_if_stmt()
 
 def generate_return_stmt():
         pass
