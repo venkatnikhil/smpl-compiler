@@ -11,6 +11,7 @@ class Parser:
         self.tokenizer: Tokenizer = Tokenizer(file_name)
         self.sym: Optional[int] = None  # holds current token
         self.cfg: CFG = CFG()
+        self.resolve_count = 1
         self.__next_token()
 
     def __next_token(self) -> None:
@@ -189,6 +190,7 @@ class Parser:
         self.cfg.remove_phi_scope()
 
     def parse_while(self) -> None:
+        self.resolve_count += 1
         self.__check_token(TokenEnum.WHILE.value)
 
         # create while, do and join blocks
@@ -223,7 +225,9 @@ class Parser:
         # updating the branch instruction from while relation to start of follow
         self.cfg.update_instr(br_instr, {"right": follow_bb})
 
-        self.cfg.resolve_phi(while_bb)
+        for i in range(self.resolve_count):
+            self.cfg.resolve_phi(while_bb)
+        self.resolve_count -= 1
 
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:

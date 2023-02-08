@@ -58,15 +58,18 @@ class CFG:
                 return
 
             if assignment:
-                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num,
-                                                               left=None, right=None)
+                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
+                                                           right=None)
                 self.remove_phi_scope()
-                self.update_var_instr_map(phi_bb, ident, phi_instr_num)
+                self.update_var_instr_map(phi_bb, ident, phi_instr_num, True)
                 self.add_phi_scope(phi_scope[0], phi_scope[1])
 
             if not assignment and is_while:
-                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None, right=None)
-                phi_bb.update_var_instr_map(ident, phi_instr_num)
+                phi_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.PHI.value, bb=phi_bb_num, left=None,
+                                                           right=None)
+                self.remove_phi_scope()
+                self.update_var_instr_map(phi_bb, ident, phi_instr_num, True)
+                self.add_phi_scope(phi_scope[0], phi_scope[1])
                 return phi_instr_num
 
     def update_var_instr_map(self, bb: BB, ident: int, instr_num: int, assign: bool = False) -> None:
@@ -110,16 +113,22 @@ class CFG:
         instr_remove_list: list[InstrNodeActual] = []
         for instr_num in cur_bb.get_instr_list():
             instr: InstrNodeActual = self.get_actual_instr(instr_num)
-            if instr.opcode not in self.excluded_instrs:
+            if instr.opcode not in self.excluded_instrs or instr.opcode == OpCodeEnum.PHI.value:
                 if instr.left in update_map.keys():
                     instr.left = update_map[instr.left]
                 if instr.right in update_map.keys():
                     instr.right = update_map[instr.right]
-                cmmn_exp: Optional[int] = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
+
+                update_instr: Optional[int] = None
+                if instr.opcode == OpCodeEnum.PHI.value:
+                    if instr.left == instr.right and instr.left is not None:
+                        update_instr = instr.left
+                        # continue
+                else:
+                    update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
                                                                   right=instr.right)
-                if cmmn_exp:
-                    print(instr_num, cmmn_exp)
-                    update_map.update({instr_num: cmmn_exp})
+                if update_instr:
+                    update_map.update({instr_num: update_instr})
                     instr_remove_list.append(instr)
 
         for instr in instr_remove_list:
