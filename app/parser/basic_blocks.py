@@ -52,6 +52,7 @@ class BB:
         return self._instr_list[0] if self._instr_list else None
 
     def get_last_instr_num(self) -> int:
+        assert len(self._instr_list) != 0, f"Error: BB{self.bb_num} instr list is empty!!"
         return self._instr_list[-1]
 
     def remove_empty_instr(self) -> None:

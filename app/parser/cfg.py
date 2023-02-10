@@ -185,6 +185,8 @@ class CFG:
         bb.remove_from_instr_list(instr_num)
         if instr.opcode not in self.excluded_instrs:
             bb.remove_from_opcode_instr_order(instr.opcode, instr_num)
+        if len(bb.get_instr_list()) == 0:
+            self.build_instr_node(EmptyInstrNode, OpCodeEnum.EMPTY.value, bb.bb_num)
 
     def get_bb_from_bb_num(self, bb_num: int) -> BB:
         return self._bb_map[bb_num]
