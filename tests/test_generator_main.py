@@ -16,18 +16,24 @@ import string
 # done - if-then-else nested while
 # done - while, while, no nested
 # done - while, then two nested while
+# bug - could not see while - nested, while - nested
 
 digit = random.randint(0, 9)
 op = ['==', '!=', '<', '<=', '>=', '>']
 repetition = 2 # number of repetition for {}
+# expression
 counter_expr = 2 # counter variable for expression
-counter_if = 1 # counter variable for nested if-else statement
-level_if = 1 # control the number of indentation for nested if-else
-counter_while = 1 # counter variable for nested while statement
-level_while = 1 # control the number of indentation for nested while
-repetition_while = 2
+# Initialization
 amount = 3 # number of variables we initialize first
 variable_init = [] # store the initialized variables
+# if part
+counter_if = 1 # counter variable for nested if-else statement
+level_if = 1 # control the number of indentation for nested if-else
+# while part
+counter_while = 1 # counter variable for nested while statement
+level_while = 1 # control the number of indentation for nested while
+repetition_while = 2 # number of repetition for while
+
 only_number = True # first assignment, we want only number as factor
 assigned_variable_init = [] # store already assigned variables
 then_else = False # else part
@@ -423,7 +429,6 @@ def generate_while_stmt():
         print('\t' + generate_statSequence())
         print('\t' + 'od;')
 
-    
 while repetition_while > 0:
     generate_while_stmt()
     repetition_while -= 1
