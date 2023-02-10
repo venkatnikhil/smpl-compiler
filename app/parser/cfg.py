@@ -5,7 +5,6 @@ from app.parser.instr_node import OpInstrNode, EmptyInstrNode
 from app.tokens import OpCodeEnum, RELOP_TOKEN_OPCODE, TokenEnum
 from typing import Optional, Union
 from app.tokenizer import Tokenizer
-from copy import deepcopy
 
 
 class CFG:
@@ -84,7 +83,7 @@ class CFG:
         # 2. instr should be replaced by resolved_instr_num wherever used
         # 3. delete instr
         bb.update_var_instr_map(ident, resolved_instr_num)  # map ident to resolved instr num
-        self.update_resolved_instr(bb.bb_num, bb.bb_num, {instr.instr_num: resolved_instr_num}, set())
+        self.update_resolved_instr(bb.bb_num, {instr.instr_num: resolved_instr_num})
         self.delete_instr(bb, instr)
 
     def resolve_phi(self, bb_num: int) -> None:
@@ -123,56 +122,61 @@ class CFG:
 
             self.resolve_instr(bb, ident, instr, resolved_instr_num)
 
-    def update_resolved_instr(self, bb_num: int, first_bb: int, update_map: dict[int, int], visited_bb: set[int]) -> None:
-        # TODO: convert to iterative dfs
-        if bb_num in visited_bb:
-            return
+    def update_resolved_instr(self, first_bb: int, update_map: dict[int, int]) -> None:
+        stack: list[int] = [first_bb]
+        visited_bb: set[int] = set()
 
-        cur_bb: BB = self.get_bb_from_bb_num(bb_num)
-        instr_remove_list: list[InstrNodeActual] = []
-        update_from_join: bool = False
-
-        for instr_num in cur_bb.get_instr_list():
-            instr: InstrNodeActual = self.get_instr(instr_num)
-            if instr.opcode in self.excluded_instrs and instr.opcode != OpCodeEnum.PHI.value:
-                if instr.opcode in RELOP_TOKEN_OPCODE.values() and instr.left in update_map:
-                    instr.left = update_map[instr.left]
+        while stack:
+            bb_num = stack.pop()
+            if bb_num in visited_bb:
                 continue
 
-            if instr.left in update_map:
-                instr.left = update_map[instr.left]
-            if instr.right in update_map:
-                instr.right = update_map[instr.right]
+            visited_bb.add(bb_num)
 
-            update_instr: Optional[int] = None
-            if instr.opcode == OpCodeEnum.PHI.value:
-                if instr.left == instr.right and instr.left is not None:
-                    update_instr = instr.left
-            else:
-                update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
-                                                       right=instr.right)
-            if update_instr is not None:
-                update_from_join = True
-                update_map.update({instr_num: update_instr})  # common subexpr found; replace original instr
-                instr_remove_list.append(instr)
+            cur_bb: BB = self.get_bb_from_bb_num(bb_num)
+            instr_remove_list: list[InstrNodeActual] = []
+            update_from_join: bool = False
 
-        for instr in instr_remove_list:
-            self.delete_instr(cur_bb, instr)
+            for instr_num in cur_bb.get_instr_list():
+                instr: InstrNodeActual = self.get_instr(instr_num)
+                if instr.opcode in self.excluded_instrs and instr.opcode != OpCodeEnum.PHI.value:
+                    if instr.opcode in RELOP_TOKEN_OPCODE.values() and instr.left in update_map:
+                        instr.left = update_map[instr.left]
+                    continue
 
-        var_instr_map: dict[int, int] = cur_bb.get_var_instr_map()
-        keys = var_instr_map.keys()
-        for key in keys:
-            if var_instr_map[key] in update_map:
-                cur_bb.update_var_instr_map(key, update_map[var_instr_map[key]])
+                if instr.left in update_map:
+                    instr.left = update_map[instr.left]
+                if instr.right in update_map:
+                    instr.right = update_map[instr.right]
 
-        if update_from_join:
-            self.update_resolved_instr(first_bb, first_bb, deepcopy(update_map), set())
-            return
+                update_instr: Optional[int] = None
+                if instr.opcode == OpCodeEnum.PHI.value:
+                    if instr.left == instr.right and instr.left is not None:
+                        update_instr = instr.left
+                else:
+                    update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
+                                                           right=instr.right)
+                if update_instr is not None:
+                    update_from_join = True
+                    update_map.update({instr_num: update_instr})  # common subexpr found; replace original instr
+                    instr_remove_list.append(instr)
 
-        visited_bb.add(bb_num)
+            for instr in instr_remove_list:
+                self.delete_instr(cur_bb, instr)
 
-        for successor_bb_num in self._successors[bb_num]:
-            self.update_resolved_instr(successor_bb_num, first_bb, deepcopy(update_map), visited_bb)
+            var_instr_map: dict[int, int] = cur_bb.get_var_instr_map()
+            keys = var_instr_map.keys()
+            for key in keys:
+                if var_instr_map[key] in update_map:
+                    cur_bb.update_var_instr_map(key, update_map[var_instr_map[key]])
+
+            if update_from_join:
+                stack = [first_bb]
+                visited_bb = set()
+                continue
+
+            for successor_bb_num in self._successors[bb_num]:
+                stack.append(successor_bb_num)
 
     def delete_instr(self, bb: BB, instr: InstrNodeActual) -> None:
         # Remove instr from bb list
