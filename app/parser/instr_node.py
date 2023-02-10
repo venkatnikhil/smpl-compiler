@@ -21,6 +21,24 @@ class ConstInstrNode:
         return "%s: %s #%s" % (self.instr_num, self.opcode, self.val)
 
 
+class ZeroOpInstrNode:
+    def __init__(self, opcode: OpCodeEnum, instr_num: int) -> None:
+        self.opcode: OpCodeEnum = opcode
+        self.instr_num: int = instr_num
+
+    def debug(self) -> None:
+        print(repr(self))
+
+    def equals(self, opcode: OpCodeEnum) -> bool:
+        return self.opcode == opcode
+
+    def __repr__(self) -> str:
+        return "%r: ZeroOpInstrNode <%s>" % (self.instr_num, self.opcode)
+
+    def __str__(self) -> str:
+        return "%s: %s" % (self.instr_num, self.opcode)
+
+
 class OpInstrNode:
     def __init__(self, opcode: OpCodeEnum, instr_num: int, left: Optional[int], right: Optional[int]) -> None:
         self.opcode: OpCodeEnum = opcode

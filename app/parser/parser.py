@@ -1,7 +1,7 @@
 from app.tokenizer import Tokenizer
 from app.tokens import TokenEnum, OpCodeEnum, RELOP_TOKEN_OPCODE
 from app.error_handling import CustomSyntaxError
-from app.parser.instr_node import ConstInstrNode, OpInstrNode, SingleOpInstrNode
+from app.parser.instr_node import ConstInstrNode, OpInstrNode, SingleOpInstrNode, ZeroOpInstrNode
 from app.parser.cfg import CFG
 from typing import Optional, Union
 
@@ -11,6 +11,8 @@ class Parser:
         self.tokenizer: Tokenizer = Tokenizer(file_name)
         self.sym: Optional[int] = None  # holds current token
         self.cfg: CFG = CFG()
+        self.func_param_map: dict[int, int] = {TokenEnum.READ.value: 0, TokenEnum.WRITE.value: 1,
+                                               TokenEnum.WRITE_NL.value: 0}
         self.__next_token()
 
     def __next_token(self) -> None:
@@ -127,6 +129,8 @@ class Parser:
             instr_num: int = self.parse_expression()
             self.__check_token(TokenEnum.CLOSE_PAREN.value)
             return instr_num
+        elif self.sym == TokenEnum.CALL.value:
+            return self.parse_function_call()
         else:
             return self.parse_designator()
 
@@ -225,6 +229,42 @@ class Parser:
 
         self.cfg.resolve_phi(while_bb)
 
+    def parse_function_call(self) -> int:
+        self.__check_token(TokenEnum.CALL.value)
+
+        if self.sym in [TokenEnum.READ.value, TokenEnum.WRITE.value, TokenEnum.WRITE_NL.value]:
+            func_name: int = self.sym
+            self.__next_token()
+        else:
+            func_name: int = self.parse_identifier()
+
+        func_param: list[int] = []
+        if self.sym == TokenEnum.OPEN_PAREN.value:
+            self.__next_token()
+            while self.sym != TokenEnum.CLOSE_PAREN.value:
+                func_param.append(self.parse_expression())
+                if self.sym != TokenEnum.CLOSE_PAREN.value:
+                    self.__check_token(TokenEnum.COMMA.value)
+            self.__next_token()
+
+        if len(func_param) != self.func_param_map[func_name]:
+            raise CustomSyntaxError(message=f"Expected {self.func_param_map[func_name]} parameters, "
+                                            f"found {len(func_param)}")
+
+        if func_name in [TokenEnum.READ.value, TokenEnum.WRITE.value, TokenEnum.WRITE_NL.value]:
+            return self.call_pre_defined_funct(func_name, func_param)
+
+    def call_pre_defined_funct(self, func_name: int, func_param: list[int]) -> int:
+        if func_name == TokenEnum.READ.value:
+            instr_num: int = self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.READ.value, self.cfg.curr_bb.bb_num)
+        elif func_name == TokenEnum.WRITE.value:
+            instr_num: int = self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.WRITE.value,
+                                                       self.cfg.curr_bb.bb_num, left=func_param[0])
+        else:
+            instr_num: int = self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.WRITE_NL.value,
+                                                       self.cfg.curr_bb.bb_num)
+        return instr_num
+
     def parse_statement(self) -> None:
         if self.sym == TokenEnum.LET.value:
             self.parse_assignment()
@@ -232,6 +272,8 @@ class Parser:
             self.parse_if()
         elif self.sym == TokenEnum.WHILE.value:
             self.parse_while()
+        elif self.sym == TokenEnum.CALL.value:
+            self.parse_function_call()
 
     def parse_stat_sequence(self) -> None:
         self.parse_statement()

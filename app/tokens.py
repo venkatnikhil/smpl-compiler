@@ -50,6 +50,9 @@ DEFAULT_TOKENS = {
     'procedure': 114,
     '{': 150,
     'main': 200,
+    'InputNum': 201,
+    'OutputNum': 202,
+    'OutputNewLine': 203,
     'end of file': 255
 }
 
@@ -95,6 +98,9 @@ class TokenEnum(Enum):
     PROC = 114
     BEGIN = 150
     MAIN = 200
+    READ = 201
+    WRITE = 202
+    WRITE_NL = 203
     EOF = 255
     ERROR = 0
 
@@ -120,7 +126,7 @@ class OpCodeEnum(Enum):
     BGT = "bgt"
     READ = "read"
     WRITE = "write"
-    WRITENL = "writeNL"
+    WRITE_NL = "writeNL"
     EMPTY = "<empty>"
 
 
