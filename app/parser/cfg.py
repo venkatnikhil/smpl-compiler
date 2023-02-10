@@ -19,7 +19,8 @@ class CFG:
         self._bb_map: list[BB] = list()
         self.declared_vars: set[int] = set()
         self.excluded_instrs: set[OpCodeEnum] = set(RELOP_TOKEN_OPCODE.values()).union(
-            {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value})
+            {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value,
+             OpCodeEnum.READ.value, OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value})
         self._phi_scope: list[tuple[int, TokenEnum]] = list()
 
         self.__initialize_cfg()
