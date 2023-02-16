@@ -1,7 +1,7 @@
 from app.tokenizer import Tokenizer
 from app.tokens import TokenEnum, OpCodeEnum, RELOP_TOKEN_OPCODE
 from app.error_handling import CustomSyntaxError
-from app.parser.instr_node import ConstInstrNode, OpInstrNode, SingleOpInstrNode, ZeroOpInstrNode
+from app.parser.instr_node import *
 from app.parser.cfg import CFG
 from typing import Optional, Union
 
@@ -13,6 +13,7 @@ class Parser:
         self.cfg: CFG = CFG()
         self.func_param_map: dict[int, int] = {TokenEnum.READ.value: 0, TokenEnum.WRITE.value: 1,
                                                TokenEnum.WRITE_NL.value: 0}
+        self.arr_map: dict[int, list[int, list[int]]] = dict()
         self.__next_token()
 
     def __next_token(self) -> None:
@@ -38,7 +39,7 @@ class Parser:
 
     def parse_computation(self) -> None:
         self.__check_token(TokenEnum.MAIN.value)
-        if self.sym == TokenEnum.VAR.value:
+        while self.sym == TokenEnum.VAR.value or self.sym == TokenEnum.ARR.value:
             self.parse_var_decl()
         self.__check_token(TokenEnum.BEGIN.value)
         self.parse_stat_sequence()
@@ -47,18 +48,50 @@ class Parser:
         self.__check_token(TokenEnum.EOF.value)
         self.cfg.update_branch_instrs()
 
+    def parse_type_decl(self) -> Optional[list[int]]:
+        if self.sym == TokenEnum.VAR.value:
+            self.__next_token()
+            return
+
+        dim: list[int] = []
+        self.__check_token(TokenEnum.ARR.value)
+        self.__check_token(TokenEnum.OPEN_BRACKET.value)
+        dim.append(self.parse_number())
+        self.__check_token(TokenEnum.CLOSE_BRACKET.value)
+
+        while self.sym == TokenEnum.OPEN_BRACKET.value:
+            self.__next_token()
+            dim.append(self.parse_number())
+            self.__check_token(TokenEnum.CLOSE_BRACKET.value)
+
+        return dim
+
     def parse_var_decl(self) -> None:
-        self.__check_token(TokenEnum.VAR.value)
+        dim: Optional[list[int]] = self.parse_type_decl()
         self.__check_token(TokenEnum.IDENTIFIER.value)
         self.cfg.declared_vars.add(self.tokenizer.id)
+        if dim is not None:
+            instr_num: int = self.cfg.build_instr_node(AddrInstrNode, OpCodeEnum.CONST.value,
+                                                       bb=self.cfg.const_bb.bb_num,
+                                                       val=f"{Tokenizer.id2string(self.tokenizer.id)}_addr")
+            self.arr_map[self.tokenizer.id] = [instr_num, dim]
+
         while self.sym == TokenEnum.COMMA.value:
             self.__next_token()
             self.__check_token(TokenEnum.IDENTIFIER.value)
+
             if self.tokenizer.id in self.cfg.declared_vars:
                 line, col = self.tokenizer.get_curr_pos()
-                raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once "
-                                                f"at line: {line}, col: {col}!")
+                raise CustomSyntaxError(
+                    message=f"'{Tokenizer.id2string(self.tokenizer.id)}' declared more than once "
+                            f"at line: {line}, col: {col}!")
             self.cfg.declared_vars.add(self.tokenizer.id)
+
+            if dim is not None:
+                instr_num: int = self.cfg.build_instr_node(AddrInstrNode, OpCodeEnum.CONST.value,
+                                                           bb=self.cfg.const_bb.bb_num,
+                                                           val=f"{Tokenizer.id2string(self.tokenizer.id)}_addr")
+                self.arr_map[self.tokenizer.id] = [instr_num, dim]
         self.__check_token(TokenEnum.SEMI.value)
 
     def parse_assignment(self) -> None:
@@ -281,3 +314,14 @@ class Parser:
             self.__next_token()
             if self.sym not in [TokenEnum.FI.value, TokenEnum.ELSE.value, TokenEnum.END.value, TokenEnum.OD.value]:
                 self.parse_stat_sequence()
+
+    def debug(self) -> None:
+        def __fmt_arr_map() -> dict[str, str]:
+            temp = dict()
+
+            for var, val in self.arr_map.items():
+                temp[Tokenizer.id2string(var)] = f"{val}"
+
+            return temp
+        print(__fmt_arr_map())
+        self.cfg.debug()

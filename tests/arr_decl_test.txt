@@ -1,0 +1,5 @@
+main var a,f; array [100] b, c; var g; array[10][10] e;{
+    let a <- 10;
+}.
+
+

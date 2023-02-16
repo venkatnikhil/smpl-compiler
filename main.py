@@ -35,7 +35,7 @@ if __name__ == '__main__':
                 parser_obj = Parser(dirpath+file)
                 parser_obj.parse_computation()
                 parser_obj.cfg._instr_graph.debug()
-                parser_obj.cfg.debug()
+                parser_obj.debug()
                 print(end="\n\n\n")
                 ir_viz = IRViz(parser_obj.cfg, filename=file)
                 ir_viz.generate_graph()
