@@ -6,6 +6,10 @@ from app.parser.cfg import CFG
 from typing import Optional, Union
 
 
+DATATYPE_SIZE = 4
+BASE_INSTR_NUM = 1
+
+
 class Parser:
     def __init__(self, file_name: str) -> None:
         self.tokenizer: Tokenizer = Tokenizer(file_name)
@@ -47,6 +51,7 @@ class Parser:
         self.__check_token(TokenEnum.PERIOD.value)
         self.__check_token(TokenEnum.EOF.value)
         self.cfg.update_branch_instrs()
+        self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.END.value)
 
     def parse_type_decl(self) -> Optional[list[int]]:
         if self.sym == TokenEnum.VAR.value:
@@ -97,10 +102,14 @@ class Parser:
     def parse_assignment(self) -> None:
         self.__check_token(TokenEnum.LET.value)
         ident: int = self.tokenizer.id
-        self.parse_designator(rhs=False)
+        adda_instr_num: int = self.parse_designator(rhs=False)
         self.__check_token(TokenEnum.BECOMES.value)
         instr_num: int = self.parse_expression()
-        self.cfg.update_var_instr_map(self.cfg.curr_bb, ident, instr_num)
+        if adda_instr_num is not None:
+            self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.STORE.value, left=adda_instr_num,
+                                      right=instr_num)
+        else:
+            self.cfg.update_var_instr_map(self.cfg.curr_bb, ident, instr_num)
 
     def parse_identifier(self) -> int:
         if self.tokenizer.id not in self.cfg.declared_vars:
@@ -110,8 +119,46 @@ class Parser:
         self.__check_token(TokenEnum.IDENTIFIER.value)
         return self.tokenizer.id
 
+    def __build_arr_instrs(self, ident: int, dim_instr_ops: list[int], rhs: bool) -> int:
+        assert len(dim_instr_ops) == len(self.arr_map[ident][1]), "array dimensions do not match"
+        self.cfg.create_kill_instr(self.arr_map[ident][0])
+        cur_off: int = dim_instr_ops[0]
+        for i in range(1, len(dim_instr_ops)):
+            cur_off = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.MUL.value, left=cur_off,
+                                                right=self.arr_map[ident][1][i])
+            cur_off = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.ADD.value, left=cur_off,
+                                                right=dim_instr_ops[i])
+        if not self.cfg.const_bb.check_instr_exists(DATATYPE_SIZE):
+            self.cfg.update_var_instr_map(self.cfg.const_bb, DATATYPE_SIZE, self.cfg.build_instr_node(
+                ConstInstrNode, OpCodeEnum.CONST.value, bb=self.cfg.const_bb.bb_num, val=DATATYPE_SIZE))
+
+        offset_instr: int = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.MUL.value, left=cur_off,
+                                                      right=self.cfg.const_bb.get_var_instr_num(DATATYPE_SIZE))
+
+        arr_addr: int = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.ADD.value, left=BASE_INSTR_NUM,
+                                                  right=self.arr_map[ident][0])
+
+        cur_addr: int = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.ADDA.value, left=offset_instr,
+                                                  right=arr_addr)
+
+        if rhs:
+            return self.cfg.build_instr_node(SingleOpInstrNode, opcode=OpCodeEnum.LOAD.value, left=cur_addr)
+
+        return cur_addr
+
     def parse_designator(self, rhs: bool = True) -> Optional[int]:
         ident = self.parse_identifier()
+        if ident in self.arr_map:
+            if self.sym != TokenEnum.OPEN_BRACKET.value:  # TODO: fix multi-dimensional array parsing
+                raise CustomSyntaxError(message=f"missing [] for array")
+            dim_instr_ops: list[int] = []
+            while self.sym == TokenEnum.OPEN_BRACKET.value:
+                self.__next_token()
+                dim_instr_ops.append(self.parse_expression())
+                self.__check_token(TokenEnum.CLOSE_BRACKET.value)
+
+            return self.__build_arr_instrs(ident, dim_instr_ops, rhs)
+
         if rhs:  # get instr num only when it is on RHS
             instr_num: int = self.cfg.get_var_instr_num(self.cfg.curr_bb, ident, set())
             phi_instr_num: Optional[int] = self.cfg.create_phi_instr(ident, assignment=False)

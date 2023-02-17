@@ -1,0 +1,9 @@
+main
+var a, b;
+array[4] x;
+{
+    let a <- call InputNum ();
+    let x[a] <- 1;
+    let b <- x[a];
+    call OutputNum(x[a])
+}.

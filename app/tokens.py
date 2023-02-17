@@ -128,6 +128,7 @@ class OpCodeEnum(Enum):
     WRITE = "write"
     WRITE_NL = "writeNL"
     EMPTY = "<empty>"
+    KILL = "kill"
 
 
 RELOP_TOKEN_OPCODE = {

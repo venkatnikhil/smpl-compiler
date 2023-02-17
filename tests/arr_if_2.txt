@@ -1,0 +1,17 @@
+main
+var a, b, c;
+array[4] x, y;
+{
+    let a <- 1;
+    let c <- 1+1;
+    let b <- x[b];
+    let x[a] <- b + 2;
+    let x[b] <- y[a];
+    if b<= 2 then
+        let x[b] <- x[a] + 2
+    else
+        let a <- 5;
+        let b <- x[b] + 2
+    fi;
+    call OutputNum(y[1+1]);
+}.

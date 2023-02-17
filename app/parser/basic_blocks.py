@@ -30,6 +30,8 @@ class BB:
         return self._var_instr_map
 
     def update_opcode_instr_order(self, opcode: OpCodeEnum, instr: int) -> None:
+        if opcode in {OpCodeEnum.KILL.value, OpCodeEnum.LOAD.value, OpCodeEnum.STORE.value}:
+            opcode = OpCodeEnum.LOAD.value
         self.opcode_instr_order[opcode].append(instr)
 
     def update_instr_list(self, instr: int, is_phi: bool = False) -> None:

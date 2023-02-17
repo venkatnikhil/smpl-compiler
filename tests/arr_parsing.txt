@@ -1,0 +1,6 @@
+main var a; array [100][1] b; {
+    let a <- 10;
+    let b[a][0] <- 10;
+}.
+
+

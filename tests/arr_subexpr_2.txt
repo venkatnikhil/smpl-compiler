@@ -1,0 +1,17 @@
+main
+var a, b;
+array[4] x;
+{
+    let a <- 1;
+    let x[a] <- 1;
+    let x[a] <- 1;
+    let x[a] <- 1;
+    let b <- x[a];
+    let x[a] <- 2;
+    let b <- x[1];
+    call OutputNum(x[a])
+}.
+
+
+-- MULTIPLE STORES SHOULD BE CREATED
+-- NO LOADS

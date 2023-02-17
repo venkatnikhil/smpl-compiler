@@ -6,8 +6,8 @@ from app.tokens import OpCodeEnum
 
 class InstrGraph:
     def __init__(self) -> None:
-        self._instr_map: list[InstrNodeActual] = [ConstInstrNode(0, 0), AddrInstrNode(1, "BASE")]
-        self._curr_instr: int = 2
+        self._instr_map: list[InstrNodeActual] = [ConstInstrNode(0, 0)]
+        self._curr_instr: int = 1
 
     def build_instr_node(self, node_type: InstrNodeType, opcode: OpCodeEnum, instr_num: Optional[int], **kwargs):
         provided = instr_num
