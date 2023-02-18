@@ -90,9 +90,16 @@ class CFG:
             if instr.equals(opcode=OpCodeEnum.KILL.value, left=arr_addr):
                 return
 
-        kill_instr_num: int = self._instr_graph.build_instr_node(SingleOpInstrNode, OpCodeEnum.KILL.value,
-                                                                 instr_num=None, left=arr_addr)
-        kill_bb.update_opcode_instr_order(OpCodeEnum.KILL.value, kill_instr_num)
+        # TODO: uncomment and use this instead of build_instr_node
+        # kill_instr_num: int = self._instr_graph.build_instr_node(SingleOpInstrNode, OpCodeEnum.KILL.value,
+        #                                                          instr_num=None, left=arr_addr)
+        # kill_bb.update_opcode_instr_order(OpCodeEnum.KILL.value, kill_instr_num)
+        kill_instr_num: int = self.build_instr_node(SingleOpInstrNode, OpCodeEnum.KILL.value, kill_bb.bb_num,
+                                                    left=arr_addr)
+
+        self.remove_phi_scope()
+        self.create_kill_instr(arr_addr)
+        self.add_phi_scope(kill_scope[0], kill_scope[1])
 
     def update_var_instr_map(self, bb: BB, ident: int, instr_num: int) -> None:
         bb.update_var_instr_map(ident, instr_num)
@@ -239,10 +246,15 @@ class CFG:
         bb1: int = self.create_bb([bb0], [])
         self.const_bb = self.get_bb_from_bb_num(bb0)
 
-    def __check_same_arr(self, elem_addr: int, arr_offset: int) -> bool:
+    def __get_arr_addr(self, elem_addr: int) -> int:
         adda_instr: InstrNodeActual = self._instr_graph.get_instr(elem_addr)
         arr_addr: InstrNodeActual = self._instr_graph.get_instr(adda_instr.right)
-        return arr_addr.right == arr_offset
+        return arr_addr.right
+
+    # def __check_same_arr(self, elem_addr: int, arr_offset: int) -> bool:
+    #     adda_instr: InstrNodeActual = self._instr_graph.get_instr(elem_addr)
+    #     arr_addr: InstrNodeActual = self._instr_graph.get_instr(adda_instr.right)
+    #     return arr_addr.right == arr_offset
 
     def get_common_subexpr(self, bb: BB, opcode: OpCodeEnum, cur_instr_num: int = -1, **kwargs) -> Optional[int]:
         instrs: list[int] = bb.opcode_instr_order[opcode]
@@ -261,10 +273,11 @@ class CFG:
                     if cur_instr.opcode == OpCodeEnum.LOAD.value and self._instr_graph.get_instr(instr).equals(
                             opcode, **kwargs):
                         return instr
-                    if cur_instr.opcode == OpCodeEnum.STORE.value and cur_instr.left == kwargs["left"]:
-                        return instr
-                    elif cur_instr.opcode == OpCodeEnum.KILL.value and self.__check_same_arr(kwargs["left"],
-                                                                                             cur_instr.left):
+                    elif cur_instr.opcode == OpCodeEnum.STORE.value and self.__get_arr_addr(cur_instr.left) == \
+                            self.__get_arr_addr(kwargs["left"]):
+                        return None
+                    elif cur_instr.opcode == OpCodeEnum.KILL.value and self.__get_arr_addr(kwargs["left"]) == \
+                            cur_instr.left:
                         return None
             else:
                 # DO NOT search for common subexpr AFTER current instr
@@ -297,7 +310,8 @@ class CFG:
                 bb.remove_empty_instr()  # first instr is Empty instr; create new instr node with **same** instr num
 
         instr_num: int = self._instr_graph.build_instr_node(node_type, opcode, instr_num, **kwargs)
-        bb.update_instr_list(instr_num, is_phi=opcode == OpCodeEnum.PHI.value)
+        # TODO: REMOVE KILL
+        bb.update_instr_list(instr_num, prepend=opcode == OpCodeEnum.PHI.value or opcode == OpCodeEnum.KILL.value)
         if opcode not in self.excluded_instrs or opcode in {OpCodeEnum.STORE.value, OpCodeEnum.KILL.value}:
             bb.update_opcode_instr_order(opcode, instr_num)
         return instr_num

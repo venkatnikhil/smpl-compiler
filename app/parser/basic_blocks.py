@@ -34,9 +34,9 @@ class BB:
             opcode = OpCodeEnum.LOAD.value
         self.opcode_instr_order[opcode].append(instr)
 
-    def update_instr_list(self, instr: int, is_phi: bool = False) -> None:
+    def update_instr_list(self, instr: int, prepend: bool = False) -> None:
         # NOTE: always use update_opcode_instr_order and this func in conjunction
-        if is_phi:
+        if prepend:
             self._instr_list.appendleft(instr)
         else:
             self._instr_list.append(instr)
