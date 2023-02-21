@@ -75,7 +75,7 @@ class CFG:
         self.add_phi_scope(phi_scope[0], phi_scope[1])
         return phi_instr_num
 
-    def create_kill_instr(self, arr_addr: int) -> None:
+    def create_kill_instr(self, arr_addr: int, is_assign:int) -> None:
         kill_scope: Optional[tuple[int, TokenEnum]] = self.get_phi_scope()
 
         if not kill_scope:
@@ -87,18 +87,25 @@ class CFG:
 
         for instr_num in kill_bb.opcode_instr_order[OpCodeEnum.LOAD.value]:
             instr: InstrNodeActual = self._instr_graph.get_instr(instr_num)
-            if instr.equals(opcode=OpCodeEnum.KILL.value, left=arr_addr):
+            if instr.equals(opcode=OpCodeEnum.KILL.value, left=arr_addr, right=1):
+                return
+            elif instr.equals(opcode=OpCodeEnum.KILL.value, left=arr_addr, right=0):
+                if is_assign == 1:
+                    self.update_instr(instr_num, {"right": is_assign})
+                    self.remove_phi_scope()
+                    self.create_kill_instr(arr_addr, is_assign)
+                    self.add_phi_scope(kill_scope[0], kill_scope[1])
                 return
 
         # TODO: uncomment and use this instead of build_instr_node
         # kill_instr_num: int = self._instr_graph.build_instr_node(SingleOpInstrNode, OpCodeEnum.KILL.value,
         #                                                          instr_num=None, left=arr_addr)
         # kill_bb.update_opcode_instr_order(OpCodeEnum.KILL.value, kill_instr_num)
-        kill_instr_num: int = self.build_instr_node(SingleOpInstrNode, OpCodeEnum.KILL.value, kill_bb.bb_num,
-                                                    left=arr_addr)
+        kill_instr_num: int = self.build_instr_node(OpInstrNode, OpCodeEnum.KILL.value, kill_bb.bb_num,
+                                                    left=arr_addr, right=is_assign)
 
         self.remove_phi_scope()
-        self.create_kill_instr(arr_addr)
+        self.create_kill_instr(arr_addr, is_assign)
         self.add_phi_scope(kill_scope[0], kill_scope[1])
 
     def update_var_instr_map(self, bb: BB, ident: int, instr_num: int) -> None:
@@ -142,6 +149,7 @@ class CFG:
                 # 3. (y) -> phi (x) (y) -- in case of while when r_instr is looped back to current phi
                 resolved_instr_num: Optional[int] = l_instr if l_instr is not None else r_instr
             else:
+                # TODO: is common subexpr required?
                 resolved_instr_num: Optional[int] = self.get_common_subexpr(bb, instr.opcode, instr_num,
                                                                             left=l_instr, right=r_instr)
                 if resolved_instr_num is None:
@@ -149,6 +157,27 @@ class CFG:
                     continue
 
             self.resolve_instr(bb, ident, instr, resolved_instr_num)
+
+    def resolve_kill(self, bb_num: int) -> None:
+        bb: BB = self.get_bb_from_bb_num(bb_num)
+        instr_list: list[int] = bb.get_instr_list()
+        delete_list: list[InstrNodeActual] = []
+
+        for instr_num in instr_list:
+            instr: InstrNodeActual = self.get_instr(instr_num)
+            if instr.opcode != OpCodeEnum.KILL.value:
+                continue
+
+            should_resolve: int = not instr.right
+
+            if not should_resolve:
+                continue
+
+            delete_list.append(instr)
+            # self.resolve_instr(bb, ident, instr, resolved_instr_num)
+        for instr in delete_list:
+            self.delete_instr(bb, instr)
+            self.update_resolved_instr(bb.bb_num, {})
 
     def update_resolved_instr(self, first_bb: int, update_map: dict[int, int]) -> None:
         stack: list[int] = [first_bb]
@@ -171,9 +200,6 @@ class CFG:
                         and instr.opcode != OpCodeEnum.STORE.value:
                     if instr.opcode in RELOP_TOKEN_OPCODE.values() and instr.left in update_map:
                         instr.left = update_map[instr.left]
-                    elif instr.opcode == OpCodeEnum.STORE.value:
-                        instr.left = update_map.get(instr.left, instr.left)
-                        instr.right = update_map.get(instr.right, instr.right)
                     continue
 
                 if instr.left in update_map:
@@ -186,8 +212,10 @@ class CFG:
                     if instr.left == instr.right and instr.left is not None:
                         update_instr = instr.left
                 else:
-                    update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, left=instr.left,
-                                                           right=instr.right if hasattr(instr, "right") else None)
+                    kwargs = {"left": instr.left}
+                    if hasattr(instr, "right"):
+                        kwargs["right"] = instr.right
+                    update_instr = self.get_common_subexpr(cur_bb, instr.opcode, instr_num, **kwargs)
                 if update_instr is not None:
                     update_from_join = True
                     update_map.update({instr_num: update_instr})  # common subexpr found; replace original instr
@@ -214,7 +242,7 @@ class CFG:
         # Remove instr from bb list
         instr_num: int = instr.instr_num
         bb.remove_from_instr_list(instr_num)
-        if instr.opcode not in self.excluded_instrs:
+        if instr.opcode not in self.excluded_instrs or instr.opcode == OpCodeEnum.KILL.value:
             bb.remove_from_opcode_instr_order(instr.opcode, instr_num)
         if len(bb.get_instr_list()) == 0:
             self.build_instr_node(EmptyInstrNode, OpCodeEnum.EMPTY.value, bb.bb_num)
@@ -270,8 +298,7 @@ class CFG:
                 # DO NOT search for common subexpr AFTER current instr
                 for instr in instrs[idx - 1::-1]:
                     cur_instr: InstrNodeActual = self._instr_graph.get_instr(instr)
-                    if cur_instr.opcode == OpCodeEnum.LOAD.value and self._instr_graph.get_instr(instr).equals(
-                            opcode, **kwargs):
+                    if cur_instr.opcode == OpCodeEnum.LOAD.value and cur_instr.equals(opcode, **kwargs):
                         return instr
                     elif cur_instr.opcode == OpCodeEnum.STORE.value and self.__get_arr_addr(cur_instr.left) == \
                             self.__get_arr_addr(kwargs["left"]):

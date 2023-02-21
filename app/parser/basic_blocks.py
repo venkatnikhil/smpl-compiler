@@ -19,6 +19,8 @@ class BB:
         self._instr_list.remove(instr_num)
 
     def remove_from_opcode_instr_order(self, opcode: OpCodeEnum, instr_num: int) -> None:
+        if opcode in {OpCodeEnum.KILL.value, OpCodeEnum.LOAD.value, OpCodeEnum.STORE.value}:
+            opcode = OpCodeEnum.LOAD.value
         assert instr_num in self.opcode_instr_order[opcode], f"Instr: {instr_num} not found in BB{self.bb_num} " \
                                                              f"opcode instr order"
         self.opcode_instr_order[opcode].remove(instr_num)

@@ -79,7 +79,7 @@ class OpInstrNode:
             setattr(self, attr, val)
 
     def __repr__(self) -> str:
-        return "%r: OpInstrNode <%s, (%r), (%r)>" % (self.instr_num, self.opcode, self.left, self.right)
+        return "%r: OpInstrNode <%s, (%r), (%s)>" % (self.instr_num, self.opcode, self.left, self.right)
 
     def __str__(self) -> str:
         return "%s: %s (%s) (%s)" % (self.instr_num, self.opcode, self.left, self.right)

@@ -1,0 +1,22 @@
+main
+var x,y,i,j;
+array[4] a;
+{
+    let i <- 1;
+    let x <- 1;
+    let a[x] <- i;
+    let j <- a[x];
+    if a[x]<10 then
+        while a[x]<10 do
+            let a[x] <- i + 1;
+        od;
+    else
+        while a[y]<10 do
+            if a[1 + 1] < a[1] then
+                let x <- x + 1;
+            fi;
+        od;
+    fi;
+    call OutputNum(a[1]);
+    call OutputNum(a[0])
+}.

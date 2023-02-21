@@ -121,7 +121,7 @@ class Parser:
 
     def __build_arr_instrs(self, ident: int, dim_instr_ops: list[int], rhs: bool) -> int:
         assert len(dim_instr_ops) == len(self.arr_map[ident][1]), "array dimensions do not match"
-        self.cfg.create_kill_instr(self.arr_map[ident][0])
+        self.cfg.create_kill_instr(self.arr_map[ident][0], 1 - rhs)
         cur_off: int = dim_instr_ops[0]
         for i in range(1, len(dim_instr_ops)):
             cur_off = self.cfg.build_instr_node(OpInstrNode, opcode=OpCodeEnum.MUL.value, left=cur_off,
@@ -265,6 +265,7 @@ class Parser:
         self.cfg.update_predecessors(join_bb, [l_parent, r_parent])
         self.cfg.update_dom_predecessors(join_bb, [if_bb])
         self.cfg.resolve_phi(join_bb)
+        self.cfg.resolve_kill(join_bb)
 
         # adding branch instruction at the end of then block to start join block
         self.cfg.build_instr_node(SingleOpInstrNode, OpCodeEnum.BRA.value, l_parent, left=join_bb)
@@ -308,6 +309,7 @@ class Parser:
         self.cfg.update_instr(br_instr, {"right": follow_bb})
 
         self.cfg.resolve_phi(while_bb)
+        self.cfg.resolve_kill(while_bb)
 
     def parse_function_call(self) -> int:
         self.__check_token(TokenEnum.CALL.value)

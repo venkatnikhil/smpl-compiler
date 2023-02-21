@@ -7,13 +7,15 @@ array[4] a;
     let i <- 1;
     let x <- 1;
     let a[x] <- i;
+    let j <- a[x];
     while a[x]<10 do
         let a[x] <- i + 1;
+        let x <- x + 1;
         let y <- a[x] + 1;
         let i <-i + 1
     od; 
     call OutputNum(a[1])
 }.
 
-
 -- ARRAY ACCESS IN WHILE SHOULD POINT TO NEW STORE
+-- change call outputnum to a[x] should remove load in follow
