@@ -129,6 +129,9 @@ class OpCodeEnum(Enum):
     WRITE_NL = "writeNL"
     EMPTY = "<empty>"
     KILL = "kill"
+    PARAM = "param"
+    CALL = "call"
+    RETURN = "return"
 
 
 RELOP_TOKEN_OPCODE = {

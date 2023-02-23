@@ -1,0 +1,12 @@
+main
+var a;
+function x();
+var b;
+{
+    return 1 +b
+};
+
+{
+    let a <- 1;
+    call x;
+}.

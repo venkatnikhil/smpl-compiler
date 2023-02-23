@@ -1,5 +1,6 @@
 from app.tokens import OpCodeEnum
 from typing import Optional
+from app.tokenizer import Tokenizer
 
 
 class ConstInstrNode:
@@ -120,7 +121,11 @@ class SingleOpInstrNode:
             setattr(self, attr, val)
 
     def __repr__(self) -> str:
+        if self.opcode == OpCodeEnum.CALL.value:
+            return "%r: SingleOpInstrNode <%s, %s>" % (self.instr_num, self.opcode, Tokenizer.id2string(self.left))
         return "%r: SingleOpInstrNode <%s, (%r)>" % (self.instr_num, self.opcode, self.left)
 
     def __str__(self) -> str:
+        if self.opcode == OpCodeEnum.CALL.value:
+            return "%s: %s %s" % (self.instr_num, self.opcode, Tokenizer.id2string(self.left))
         return "%s: %s (%s)" % (self.instr_num, self.opcode, self.left)

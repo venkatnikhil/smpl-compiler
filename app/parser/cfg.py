@@ -21,8 +21,9 @@ class CFG:
         self.excluded_instrs: set[OpCodeEnum] = set(RELOP_TOKEN_OPCODE.values()).union(
             {OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.CONST.value, OpCodeEnum.EMPTY.value,
              OpCodeEnum.READ.value, OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value, OpCodeEnum.STORE.value,
-             OpCodeEnum.KILL.value})
+             OpCodeEnum.KILL.value, OpCodeEnum.CALL.value, OpCodeEnum.PARAM.value, OpCodeEnum.RETURN.value})
         self._phi_scope: list[tuple[int, TokenEnum]] = list()
+        self.arr_map: dict[int, list[Union[int, list[int]]]] = dict()
 
         self.__initialize_cfg()
 
