@@ -15,17 +15,24 @@ BR_INSTRS = set(RELOP_TOKEN_OPCODE.values()).union({OpCodeEnum.BRA.value})
 
 
 class IRViz:
-    def __init__(self, cfg: CFG, filename: str = None) -> None:
-        self.cfg = cfg
+    def __init__(self, cfg_map: dict[int, CFG], filename: str = None) -> None:
+        self.cfg_map: dict[int, CFG] = cfg_map
+        self.cfg: CFG
         self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG", graph_attr={"ranksep": "0.75", "nodesep": "0.5"})
-        self.filename = "graph" if filename is None else filename
-        self.dir = "./ir_viz_tool/tests"
+        self.filename: str = "graph" if filename is None else filename
+        self.dir: str = "./ir_viz_tool/tests"
+        self.call_instrs: dict[str, str] = dict()
 
     def get_bb_instrs(self, bb: BB) -> str:
         instr_str: str = ""
         for instr in bb.get_instr_list():
             actual_instr: InstrNodeActual = self.cfg.get_instr(instr)
-            instr_str += f"{str(actual_instr)} | "
+            if actual_instr.opcode != OpCodeEnum.CALL.value:
+                instr_str += f"{str(actual_instr)} | "
+            else:
+                instr_str += f"<{actual_instr.instr_num}>{str(actual_instr)} | "
+                self.call_instrs[f"{self.key}BB{bb.bb_num}:{actual_instr.instr_num}"] = \
+                    f"{Tokenizer.id2string(actual_instr.left)}_BB0"
 
         return instr_str[:-2]
 
@@ -33,7 +40,7 @@ class IRViz:
         dom_bb: int = self.cfg.get_dom_predecessor(bb.bb_num)
         if dom_bb == -1:
             return
-        self.graph.edge(f"BB{dom_bb}:b", f"BB{bb.bb_num}:b", label="dom", style="dotted")
+        self.sub_graph.edge(f"{self.key}BB{dom_bb}:b", f"{self.key}BB{bb.bb_num}:b", label="dom", style="dotted")
 
     def add_pred_edge(self, bb: BB) -> None:
         global c
@@ -51,9 +58,9 @@ class IRViz:
                 else:
                     instr_num = instr.right
             if instr_num == bb_first_instr_num:
-                self.graph.edge(f"BB{pred}:s", f"BB{bb.bb_num}:n", color=colors[c % 3], label="br", style="bold")
+                self.sub_graph.edge(f"{self.key}BB{pred}:s", f"{self.key}BB{bb.bb_num}:n", color=colors[c % 3], label="br", style="bold")
             else:
-                self.graph.edge(f"BB{pred}:s", f"BB{bb.bb_num}:n", color=colors[c % 3])
+                self.sub_graph.edge(f"{self.key}BB{pred}:s", f"{self.key}BB{bb.bb_num}:n", color=colors[c % 3])
 
             c += 1
 
@@ -72,12 +79,12 @@ class IRViz:
     def generate_basic_blocks(self) -> None:
         def __create_basic_block(shape: str = "record") -> None:
             nonlocal name, label, var_instr_map
-            label = f"<b>{name.upper()} | {{{label}}} | {{{var_instr_map}}}"
-            self.graph.node(name=name, label=label, shape=shape, ordering="out")
+            label = f"<b>{name} | {{{label}}} | {{{var_instr_map}}}"
+            self.sub_graph.node(name=name, label=label, shape=shape, ordering="out")
 
         for bb in self.cfg.get_bb_map():
             label: str = self.get_bb_instrs(bb)
-            name: str = f"BB{bb.bb_num}"
+            name: str = f"{self.key}BB{bb.bb_num}"
             var_instr_map: str = self.fmt_var_instr_map(bb)
             __create_basic_block()
             self.add_dom_edge(bb)
@@ -88,5 +95,14 @@ class IRViz:
         self.graph.render(filename=f"{self.dir}/{self.filename}", format="png")
 
     def generate_graph(self) -> None:
-        self.generate_basic_blocks()
+        for key, cfg in self.cfg_map.items():
+            self.cfg = cfg
+            self.key = f"{Tokenizer.id2string(key)}_" if key != 0 else ""
+            with self.graph.subgraph(name=f"cluster_{self.key}") as self.sub_graph:
+                self.sub_graph.attr(label=self.key[:-1] if self.key else "main")
+                self.generate_basic_blocks()
+
+        for key, val in self.call_instrs.items():
+            self.graph.edge(f"{key}:_", f"{val}:n", label="call", style="dotted")
+
         self.render_graph()
