@@ -37,7 +37,7 @@ if __name__ == '__main__':
                 parser_obj.cfg._instr_graph.debug()
                 parser_obj.debug()
                 print(end="\n\n\n")
-                ir_viz = IRViz(parser_obj.cfg, filename=file)
+                ir_viz = IRViz(parser_obj.cfg_map, filename=file)
                 ir_viz.generate_graph()
         except CustomSyntaxError as e:
             print(repr(e))

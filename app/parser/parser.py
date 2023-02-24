@@ -1,6 +1,4 @@
-from app.tokenizer import Tokenizer
 from app.tokens import TokenEnum, RELOP_TOKEN_OPCODE
-from app.custom_types import InstrNodeType
 from app.error_handling import CustomSyntaxError
 from app.parser.instr_node import *
 from app.parser.cfg import CFG
@@ -87,6 +85,9 @@ class Parser:
         self.__check_token(TokenEnum.BEGIN.value)
         if self.sym != TokenEnum.END.value:
             self.parse_stat_sequence()
+        last_instr_num: int = self.cfg.curr_bb.get_last_instr_num()
+        if self.cfg.get_instr(last_instr_num).opcode != OpCodeEnum.RETURN.value:
+            self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.RETURN.value)
         self.__check_token(TokenEnum.END.value)
 
     def parse_function(self) -> None:
@@ -122,8 +123,10 @@ class Parser:
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
         self.__check_token(TokenEnum.EOF.value)
-        self.cfg.update_branch_instrs()
         self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.END.value)
+        for _, cur_cfg in self.cfg_map.items():
+            cur_cfg.clean_instr(visited_set=set())
+            cur_cfg.update_branch_instrs()
 
     def parse_type_decl(self) -> Optional[list[int]]:
         if self.sym == TokenEnum.VAR.value:
@@ -186,8 +189,8 @@ class Parser:
     def parse_identifier(self) -> int:
         if self.tokenizer.id not in self.cfg.declared_vars and self.tokenizer.id not in self.func_param_map.keys():
             line, col = self.tokenizer.get_curr_pos()
-            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared but used at line: "
-                                            f"{line}, col: {col}!")
+            raise CustomSyntaxError(message=f"'{Tokenizer.id2string(self.tokenizer.id)}' not declared but used at "
+                                            f"line: {line}, col: {col}!")
         self.__check_token(TokenEnum.IDENTIFIER.value)
         return self.tokenizer.id
 

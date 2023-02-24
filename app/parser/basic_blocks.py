@@ -25,10 +25,16 @@ class BB:
                                                              f"opcode instr order"
         self.opcode_instr_order[opcode].remove(instr_num)
 
-    def get_instr_list(self):
+    def get_instr_list(self) -> deque[int]:
         return self._instr_list
 
-    def get_var_instr_map(self):
+    def set_instr_list(self, updated_list: deque[int]) -> None:
+        self._instr_list = updated_list
+
+    def has_instr(self) -> bool:
+        return len(self._instr_list) > 0
+
+    def get_var_instr_map(self) -> dict[int, int]:
         return self._var_instr_map
 
     def update_opcode_instr_order(self, opcode: OpCodeEnum, instr: int) -> None:
