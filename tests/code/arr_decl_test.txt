@@ -1,0 +1,9 @@
+main
+var a, b, c;
+array[4] x, y;
+{
+    let x[1] <- 1;
+    let a <- x[1];
+    let x[1] <- x[1];
+    let y[2] <- 2;
+}.

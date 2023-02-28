@@ -1,5 +1,5 @@
 main var i,j,x,y;
-function repeat();
+void function repeat();
 var x, y, i, j;
 {
     while x < 10 do

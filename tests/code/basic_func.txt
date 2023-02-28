@@ -1,6 +1,6 @@
 main
 var a;
-function x();
+void function x();
 var b;
 {
     return 1 +b

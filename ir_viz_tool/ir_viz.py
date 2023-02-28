@@ -20,7 +20,7 @@ class IRViz:
         self.cfg: CFG
         self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG", graph_attr={"ranksep": "0.75", "nodesep": "0.5"})
         self.filename: str = "graph" if filename is None else filename
-        self.dir: str = "./ir_viz_tool/tests"
+        self.dir: str = "./tests/ir"
         self.call_instrs: dict[str, str] = dict()
 
     def get_bb_instrs(self, bb: BB) -> str:
@@ -76,16 +76,22 @@ class IRViz:
 
         return res[:-2]
 
+    def get_live_range(self, bb: BB) -> str:
+        if bb is self.cfg.const_bb:
+            return ""
+        return f"top: {list(bb.top_live)} | bot: {list(bb.bot_live)}"
+
     def generate_basic_blocks(self) -> None:
         def __create_basic_block(shape: str = "record") -> None:
-            nonlocal name, label, var_instr_map
-            label = f"<b>{name} | {{{label}}} | {{{var_instr_map}}}"
+            nonlocal name, label, var_instr_map, live_range
+            label = f"<b>{name} | {{{label}}} | {{{var_instr_map}}} | {{{live_range}}}"
             self.sub_graph.node(name=name, label=label, shape=shape, ordering="out")
 
         for bb in self.cfg.get_bb_map():
             label: str = self.get_bb_instrs(bb)
             name: str = f"{self.key}BB{bb.bb_num}"
             var_instr_map: str = self.fmt_var_instr_map(bb)
+            live_range: str = self.get_live_range(bb)
             __create_basic_block()
             self.add_dom_edge(bb)
             self.add_pred_edge(bb)

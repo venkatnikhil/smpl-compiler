@@ -10,6 +10,9 @@ class BB:
         self._instr_list: deque[int] = deque([])
         self._var_instr_map: dict[int, int] = dict()
         self.opcode_instr_order: dict[OpCodeEnum, list[int]] = defaultdict(list)
+        self.top_live: Optional[set[int]] = None
+        self.bot_live: Optional[set[int]] = None
+        self.phi_live: list[set[int]] = [set(), set()]
 
     def debug(self) -> None:
         print(repr(self))
