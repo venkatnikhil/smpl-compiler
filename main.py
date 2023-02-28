@@ -1,6 +1,7 @@
 from app.tokenizer import Tokenizer
 from app.parser.parser import Parser
 from app.error_handling import CustomSyntaxError
+from app.parser.interference_graph import InterferenceGraph
 from ir_viz_tool.ir_viz import IRViz
 
 # tokenizer = Tokenizer('if_then.txt')
@@ -27,7 +28,7 @@ if __name__ == '__main__':
             # "error_test.txt"
             ]
 
-    dirpath = "./tests/"
+    dirpath = "./tests/code/"
     for file in os.listdir(dirpath):
         try:
             if (file in include or not include) and file.endswith(".txt"):
@@ -36,6 +37,10 @@ if __name__ == '__main__':
                 parser_obj.parse_computation()
                 parser_obj.cfg._instr_graph.debug()
                 parser_obj.debug()
+                interference_graph = InterferenceGraph(cfg_map=parser_obj.cfg_map, filename=file)
+                interference_graph.build_interference_graph(set())
+                interference_graph.render_graph()
+                interference_graph.debug()
                 print(end="\n\n\n")
                 ir_viz = IRViz(parser_obj.cfg_map, filename=file)
                 ir_viz.generate_graph()
