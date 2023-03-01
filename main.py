@@ -23,9 +23,10 @@ if __name__ == '__main__':
             # "nested_if_then_else.txt",
             # "var_copy_prop.txt",
             # "subexpr_1.txt",
-            "subexpr_if.txt",
+            # "subexpr_if.txt",
             # "subexpr_if_2.txt",
-            # "error_test.txt"
+            # "error_test.txt",
+            "ig_1.txt"
             ]
 
     dirpath = "./tests/code/"
@@ -38,9 +39,9 @@ if __name__ == '__main__':
                 parser_obj.cfg._instr_graph.debug()
                 parser_obj.debug()
                 interference_graph = InterferenceGraph(cfg_map=parser_obj.cfg_map, filename=file)
-                interference_graph.build_interference_graph(set())
-                interference_graph.render_graph()
+                interference_graph.create_interference_graph(set())
                 interference_graph.debug()
+                interference_graph.render_graph()
                 print(end="\n\n\n")
                 ir_viz = IRViz(parser_obj.cfg_map, filename=file)
                 ir_viz.generate_graph()

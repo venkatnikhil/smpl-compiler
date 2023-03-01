@@ -29,18 +29,71 @@ class InterferenceGraph:
                                                   OpCodeEnum.RETURN.value, OpCodeEnum.END.value,
                                                   OpCodeEnum.STORE.value}.union(set(RELOP_TOKEN_OPCODE.values()))
         self.dead_code: set[int] = set()
-        self.clusters: list[list[int]] = []
         self.used_nodes: set[int] = set()
+        self.coalesce_map: dict[int] = dict()
+        self.old_ig = {}
 
-    def build_interference_graph(self, live_range: set[int], bb: Optional[BB] = None) -> None:
+    def create_interference_graph(self, live_range: set[int], bb: Optional[BB] = None) -> None:
+        self.build_basic_interference_graph(live_range, bb)
+        print('starting interference graph', self.interference_edges)
+        self.old_ig = deepcopy(self.interference_edges)
+        self.coalesce_phi()
+        self.color_graph()
+
+    def check_for_interference(self, node_1, node_2) -> bool:
+        if node_1 not in self.interference_edges[node_2]:
+            return True
+        return False
+
+    def coalesce_phi(self) -> None:
+        cluster_set: list[list[int]] = self.get_clusters()
+        for cluster in cluster_set:
+            cur_coalesce = [cluster[0]]
+            if cluster[1] in self.interference_edges \
+                    and self.check_for_interference(cluster[0], cluster[1])\
+                    and cluster[2] in self.interference_edges \
+                    and self.check_for_interference(cluster[0], cluster[2]):
+                if self.check_for_interference(cluster[1], cluster[2]):
+                    cur_coalesce = cluster
+                else:
+                    cur_coalesce.append(cluster[1])
+
+            elif cluster[2] in self.interference_edges and self.check_for_interference(cluster[0], cluster[2]):
+                cur_coalesce.append(cluster[2])
+
+            if len(cur_coalesce) > 1:
+                self.coalesce_nodes(cur_coalesce)
+
+    def coalesce_nodes(self, node_list: list[int]) -> None:
+        print('coalesce', node_list)
+        phi_node: int = node_list[0]
+        for node in node_list[1:]:
+            self.interference_edges[phi_node] = self.interference_edges[phi_node].union(self.interference_edges[node])
+            self.node_cost[phi_node] = self.node_cost[phi_node].union(self.node_cost[node])
+            del self.interference_edges[node]
+            del self.node_cost[node]
+            for key, value in self.interference_edges.items():
+                if node in value:
+                    self.interference_edges[key].remove(node)
+                    self.interference_edges[key].add(phi_node)
+            self.coalesce_map[node] = phi_node
+
+    def get_clusters(self) -> list[list[int]]:
+        cluster_set: list[list[int]] = []
+        for instr_num, inter_set in self.interference_edges.items():
+            instr: InstrNodeActual = self.cfg.get_instr(instr_num)
+            if instr.opcode == OpCodeEnum.PHI.value and instr_num not in self.dead_code:
+                cluster_set.append([instr_num, instr.left, instr.right])
+        print('clusters:', cluster_set)
+        return cluster_set
+
+    def build_basic_interference_graph(self, live_range: set[int], bb: Optional[BB] = None) -> None:
         # set default bb to last bb
         if bb is None:
             bb = self.cfg.curr_bb
         elif bb.bot_live is not None and live_range == bb.bot_live:
-            print(bb.bb_num)
             # return if live_range already calculated
             return
-        print(bb.bb_num)
 
         # calculate the live ranges
         if bb.bot_live is None:
@@ -61,7 +114,7 @@ class InterferenceGraph:
             updated_live: set[int] = live_range.union(bb.phi_live[i])
             parent_bb:BB = self.cfg.get_bb_from_bb_num(pred_bb[i])
             if parent_bb != self.cfg.const_bb:
-                self.build_interference_graph(updated_live, parent_bb)
+                self.build_basic_interference_graph(updated_live, parent_bb)
 
     def calculate_top_and_bot(self, bb: BB) -> set[int]:
         live_set: set[int] = deepcopy(bb.bot_live)
@@ -84,13 +137,6 @@ class InterferenceGraph:
                 if instr.right not in self.const_bb_instr:
                     bb.phi_live[1].add(instr.right)
                     self.node_cost[instr.right].add(instr_num)
-
-                curr_cluster: list[int] = list(filter(lambda x: (x not in self.used_nodes) and
-                                                                (x not in self.const_bb_instr), [instr_num, instr.left,
-                                                                                                 instr.right]))
-                if curr_cluster:
-                    self.clusters.append(curr_cluster)
-                self.used_nodes = self.used_nodes.union({instr_num, instr.left, instr.right})
 
             if instr_num in live_set:
                 live_set.remove(instr_num)
@@ -116,23 +162,26 @@ class InterferenceGraph:
         for node in dest:
             self.interference_edges[node].add(src)
 
-    def add_rem_nodes_to_clusters(self) -> None:
-        for node in self.interference_edges.keys():
-            if node not in self.used_nodes:
-                self.used_nodes.add(node)
-                self.clusters.append([node])
-
     def render_graph(self) -> None:
-        self.add_rem_nodes_to_clusters()
         self.graph.add_nodes_from(self.interference_edges.keys())
         for src, dest in self.interference_edges.items():
             self.graph.add_edges_from([(src, d) for d in dest])
         plt.figure(figsize=(10, 10))
         nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
-        print(self.clusters)
         # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
         #         node_color=["white"], node_size=1000)
-        plt.savefig(f"/Users/himanshushah/UCI/q2/smpl-compiler/tests/ig/{self.filename}_graph.png")
+        plt.savefig(f"C:\\Users\\venka\\source\\repos\\smpl-compiler\\tests\\ig\\{self.filename}_graph.png")
+        plt.show()
+
+        self.graph = nx.Graph()
+        self.graph.add_nodes_from(self.old_ig.keys())
+        for src, dest in self.old_ig.items():
+            self.graph.add_edges_from([(src, d) for d in dest])
+        plt.figure(figsize=(10, 10))
+        nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
+        # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
+        #         node_color=["white"], node_size=1000)
+        plt.savefig(f"C:\\Users\\venka\\source\\repos\\smpl-compiler\\tests\\ig\\{self.filename}_old_graph.png")
         plt.show()
 
     def debug(self) -> None:
@@ -147,7 +196,6 @@ class InterferenceGraph:
         # print(json.dumps(self.node_cost, indent=3, default=set_default))
         # print(set(self.interference_edges.keys()).difference(set(self.node_cost.keys())))
         # print(set(self.node_cost.keys()).difference(set(self.interference_edges.keys())))
-        self.color_graph()
 
     def get_adjacent_colors(self, node: int) -> set[int]:
         adj_colors: set[int] = set()

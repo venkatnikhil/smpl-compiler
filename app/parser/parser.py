@@ -122,7 +122,7 @@ class Parser:
         self.parse_stat_sequence()
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
-        self.__check_token(TokenEnum.EOF.value)
+        # self.__check_token(TokenEnum.EOF.value)
         self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.END.value)
         for _, cur_cfg in self.cfg_map.items():
             cur_cfg.clean_instr(visited_set=set())
