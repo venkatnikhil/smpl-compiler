@@ -167,10 +167,13 @@ class InterferenceGraph:
         for src, dest in self.interference_edges.items():
             self.graph.add_edges_from([(src, d) for d in dest])
         plt.figure(figsize=(10, 10))
-        nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
+        colors = [len(self.node_cost[i]) for i in list(self.graph)]
+        maxval = max(colors)
+        colors = list(map(lambda x: x/maxval, colors))
+        nx.draw(self.graph, with_labels=True, node_color=colors, node_size=1000, cmap=plt.cm.get_cmap("coolwarm"), font_color="whitesmoke")
         # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
         #         node_color=["white"], node_size=1000)
-        plt.savefig(f"C:\\Users\\venka\\source\\repos\\smpl-compiler\\tests\\ig\\{self.filename}_graph.png")
+        plt.savefig(f"./tests/ig/{self.filename}_graph.png")
         plt.show()
 
         self.graph = nx.Graph()
@@ -181,7 +184,7 @@ class InterferenceGraph:
         nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
         # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
         #         node_color=["white"], node_size=1000)
-        plt.savefig(f"C:\\Users\\venka\\source\\repos\\smpl-compiler\\tests\\ig\\{self.filename}_old_graph.png")
+        plt.savefig(f"./tests/ig/{self.filename}_old_graph.png")
         plt.show()
 
     def debug(self) -> None:
