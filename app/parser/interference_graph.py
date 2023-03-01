@@ -10,14 +10,18 @@ from copy import deepcopy
 import os
 import networkx as nx
 import matplotlib.pyplot as plt
+import heapq
 
 
 class InterferenceGraph:
     def __init__(self, cfg_map: dict[int, CFG], filename: str) -> None:
         self.interference_edges: dict[int, set[int]] = defaultdict(set)
+        self.node_cost: dict[int, set[int]] = defaultdict(set)
+        self.node_color: dict[int, int] = defaultdict(int)
         self.cfg_map: dict[int, CFG] = cfg_map
         self.cfg: CFG = cfg_map[0]
-        self.const_bb_instr: set[int] = set(self.cfg.const_bb.get_instr_list()).union({0,})
+        self.all_colors: set[int] = set(range(1, 6))
+        self.const_bb_instr: set[int] = set(self.cfg.const_bb.get_instr_list()).union({0, })
         self.graph = nx.Graph()
         self.filename = os.path.splitext(filename)[0]
         self.live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value,
@@ -76,8 +80,10 @@ class InterferenceGraph:
             if instr.opcode == OpCodeEnum.PHI.value:
                 if instr.left not in self.const_bb_instr:
                     bb.phi_live[0].add(instr.left)
+                    self.node_cost[instr.left].add(instr_num)
                 if instr.right not in self.const_bb_instr:
                     bb.phi_live[1].add(instr.right)
+                    self.node_cost[instr.right].add(instr_num)
 
                 curr_cluster: list[int] = list(filter(lambda x: (x not in self.used_nodes) and
                                                                 (x not in self.const_bb_instr), [instr_num, instr.left,
@@ -92,13 +98,16 @@ class InterferenceGraph:
 
             if instr.opcode in RELOP_TOKEN_OPCODE.values() or isinstance(instr, SingleOpInstrNode):
                 live_set.add(instr.left)
+                self.node_cost[instr.left].add(instr_num)
             elif instr.opcode == OpCodeEnum.PHI.value:
                 continue
             elif isinstance(instr, OpInstrNode):
                 if instr.left not in self.const_bb_instr:
                     live_set.add(instr.left)
+                    self.node_cost[instr.left].add(instr_num)
                 if instr.right not in self.const_bb_instr:
                     live_set.add(instr.right)
+                    self.node_cost[instr.right].add(instr_num)
 
         return live_set
 
@@ -118,7 +127,7 @@ class InterferenceGraph:
         self.graph.add_nodes_from(self.interference_edges.keys())
         for src, dest in self.interference_edges.items():
             self.graph.add_edges_from([(src, d) for d in dest])
-        plt.figure(figsize=(20, 20))
+        plt.figure(figsize=(10, 10))
         nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
         print(self.clusters)
         # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
@@ -127,5 +136,52 @@ class InterferenceGraph:
         plt.show()
 
     def debug(self) -> None:
+        import json
+
+        def set_default(obj):
+            if isinstance(obj, set):
+                return list(obj)
+
         print(self.interference_edges)
         print(self.dead_code)
+        # print(json.dumps(self.node_cost, indent=3, default=set_default))
+        # print(set(self.interference_edges.keys()).difference(set(self.node_cost.keys())))
+        # print(set(self.node_cost.keys()).difference(set(self.interference_edges.keys())))
+        self.color_graph()
+
+    def get_adjacent_colors(self, node: int) -> set[int]:
+        adj_colors: set[int] = set()
+        for node in self.interference_edges[node]:
+            if self.node_color[node] != 0:
+                adj_colors.add(self.node_color[node])
+        return adj_colors
+
+    def color_node(self, node: int) -> int:
+        adj_colors: set[int] = self.get_adjacent_colors(node)
+        available_colors: set[int] = self.all_colors.difference(adj_colors)
+        if available_colors:
+            return min(available_colors)  # assign smallest available color
+        else:
+            new_max_val: int = max(self.all_colors) + 1
+            self.all_colors.add(new_max_val + 1)
+            return new_max_val
+
+    def color_graph(self) -> None:
+        self.get_cost_heap()
+
+        import json
+
+        def __color():
+            while self.heap:
+                node = heapq.heappop(self.heap)
+                if self.heap:
+                    __color()
+                self.node_color[node[1]] = self.color_node(node[1])
+
+        __color()
+
+        print(json.dumps(self.node_color, indent=2))
+
+    def get_cost_heap(self) -> None:
+        self.heap = [(len(value), key) for key, value in self.node_cost.items()]
+        heapq.heapify(self.heap)
