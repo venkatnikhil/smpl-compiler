@@ -163,7 +163,7 @@ class CFG:
 
     def resolve_kill(self, bb_num: int) -> None:
         bb: BB = self.get_bb_from_bb_num(bb_num)
-        instr_list: list[int] = bb.get_instr_list()
+        instr_list: deque[int] = bb.get_instr_list()
         delete_list: list[InstrNodeActual] = []
 
         for instr_num in instr_list:
@@ -416,19 +416,27 @@ class CFG:
         for next_bb in self._successors[bb.bb_num]:
             self.clean_instr(visited_set, self.get_bb_from_bb_num(next_bb))
 
-    def __get_non_empty_bb(self, bb_num) -> int:
+    def __get_non_empty_bb(self, bb_num: int, dead_code: set[int]) -> int:
         bb: BB = self.get_bb_from_bb_num(bb_num)
-        if self.get_instr(bb.get_first_instr_num()).opcode == OpCodeEnum.EMPTY.value:
-            return self.__get_non_empty_bb(self._successors[bb_num][0])
-        return bb.get_first_instr_num()
+        branch_to: Optional[int] = None
+        for instr_num in bb.get_instr_list():
+            instr: InstrNodeActual = self.get_instr(instr_num)
+            if instr.opcode != OpCodeEnum.EMPTY.value:
+                    # and instr_num not in dead_code \
+                    # and instr.opcode != OpCodeEnum.PHI.value:
+                branch_to = instr_num
+                break
+        if branch_to is None:
+            return self.__get_non_empty_bb(self._successors[bb_num][0], dead_code)
+        return branch_to
 
-    def update_branch_instrs(self) -> None:
+    def update_branch_instrs(self, dead_code: set[int]) -> None:
         for bb in self._bb_map:
             instr: InstrNodeActual = self._instr_graph.get_instr(bb.get_last_instr_num())
             if instr.opcode == OpCodeEnum.BRA.value:
-                instr.left = self.__get_non_empty_bb(instr.left)
+                instr.left = self.__get_non_empty_bb(instr.left, dead_code)
             elif instr.opcode in set(RELOP_TOKEN_OPCODE.values()):
-                instr.right = self.__get_non_empty_bb(instr.right)
+                instr.right = self.__get_non_empty_bb(instr.right, dead_code)
 
     def debug(self) -> None:
         for bb in self._bb_map:

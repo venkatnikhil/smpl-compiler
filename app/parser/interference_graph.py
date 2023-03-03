@@ -7,38 +7,30 @@ from app.parser.instr_node import *
 from collections import defaultdict
 from copy import deepcopy
 
-import os
 import networkx as nx
 import matplotlib.pyplot as plt
-import heapq
 
 
 class InterferenceGraph:
-    def __init__(self, cfg_map: dict[int, CFG], filename: str) -> None:
+    live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value, OpCodeEnum.PHI.value,
+                                         OpCodeEnum.BRA.value, OpCodeEnum.PARAM.value, OpCodeEnum.RETURN.value,
+                                         OpCodeEnum.END.value, OpCodeEnum.STORE.value}\
+        .union(set(RELOP_TOKEN_OPCODE.values()))
+
+    def __init__(self, cfg: CFG) -> None:
         self.interference_edges: dict[int, set[int]] = defaultdict(set)
-        self.node_cost: dict[int, set[int]] = defaultdict(set)
-        self.node_color: dict[int, int] = defaultdict(int)
-        self.cfg_map: dict[int, CFG] = cfg_map
-        self.cfg: CFG = cfg_map[0]
-        self.all_colors: set[int] = set(range(1, 6))
+        self.cfg: CFG = cfg
         self.const_bb_instr: set[int] = set(self.cfg.const_bb.get_instr_list()).union({0, })
-        self.graph = nx.Graph()
-        self.filename = os.path.splitext(filename)[0]
-        self.live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value,
-                                                  OpCodeEnum.PHI.value, OpCodeEnum.BRA.value, OpCodeEnum.PARAM.value,
-                                                  OpCodeEnum.RETURN.value, OpCodeEnum.END.value,
-                                                  OpCodeEnum.STORE.value}.union(set(RELOP_TOKEN_OPCODE.values()))
         self.dead_code: set[int] = set()
-        self.used_nodes: set[int] = set()
         self.coalesce_map: dict[int] = dict()
         self.old_ig = {}
+        self.node_cost: dict[int, set[int]] = defaultdict(set)
 
-    def create_interference_graph(self, live_range: set[int], bb: Optional[BB] = None) -> None:
-        self.build_basic_interference_graph(live_range, bb)
+    def create_interference_graph(self, bb: Optional[BB] = None) -> None:
+        self.build_basic_interference_graph(set(), bb)
         print('starting interference graph', self.interference_edges)
         self.old_ig = deepcopy(self.interference_edges)
         self.coalesce_phi()
-        self.color_graph()
 
     def check_for_interference(self, node_1, node_2) -> bool:
         if node_1 not in self.interference_edges[node_2]:
@@ -113,14 +105,17 @@ class InterferenceGraph:
         for i in range(len(pred_bb)):
             updated_live: set[int] = live_range.union(bb.phi_live[i])
             parent_bb:BB = self.cfg.get_bb_from_bb_num(pred_bb[i])
-            if parent_bb != self.cfg.const_bb:
-                self.build_basic_interference_graph(updated_live, parent_bb)
+            # if parent_bb != self.cfg.const_bb:
+            self.build_basic_interference_graph(updated_live, parent_bb)
 
     def calculate_top_and_bot(self, bb: BB) -> set[int]:
         live_set: set[int] = deepcopy(bb.bot_live)
 
         for instr_num in reversed(bb.get_instr_list()):
             instr: InstrNodeActual = self.cfg.get_instr(instr_num)
+
+            if isinstance(instr, ConstInstrNode) or isinstance(instr, AddrInstrNode):
+                continue
 
             if instr_num not in live_set and instr.opcode not in self.live_not_exclude:
                 self.dead_code.add(instr_num)
@@ -142,7 +137,8 @@ class InterferenceGraph:
                 live_set.remove(instr_num)
                 self.add_edges(instr_num, live_set)
 
-            if instr.opcode in RELOP_TOKEN_OPCODE.values() or isinstance(instr, SingleOpInstrNode):
+            if instr.opcode in RELOP_TOKEN_OPCODE.values() or (isinstance(instr, SingleOpInstrNode) and
+                                                               instr.opcode != OpCodeEnum.CALL.value):
                 live_set.add(instr.left)
                 self.node_cost[instr.left].add(instr_num)
             elif instr.opcode == OpCodeEnum.PHI.value:
@@ -162,29 +158,31 @@ class InterferenceGraph:
         for node in dest:
             self.interference_edges[node].add(src)
 
-    def render_graph(self) -> None:
-        self.graph.add_nodes_from(self.interference_edges.keys())
-        for src, dest in self.interference_edges.items():
-            self.graph.add_edges_from([(src, d) for d in dest])
-        plt.figure(figsize=(10, 10))
-        colors = [len(self.node_cost[i]) for i in list(self.graph)]
-        maxval = max(colors)
-        colors = list(map(lambda x: x/maxval, colors))
-        nx.draw(self.graph, with_labels=True, node_color=colors, node_size=1000, cmap=plt.cm.get_cmap("coolwarm"), font_color="whitesmoke")
-        # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
-        #         node_color=["white"], node_size=1000)
-        plt.savefig(f"./tests/ig/{self.filename}_graph.png")
-        plt.show()
+    def render_graph(self, filename: str, debug: bool = False, node_color: Optional[dict[int, int]] = None) -> None:
+        graph = nx.Graph()
 
-        self.graph = nx.Graph()
-        self.graph.add_nodes_from(self.old_ig.keys())
-        for src, dest in self.old_ig.items():
-            self.graph.add_edges_from([(src, d) for d in dest])
+        if debug:
+            edges = self.old_ig
+        else:
+            edges = self.interference_edges
+
+        graph.add_nodes_from(edges.keys())
+        for src, dest in edges.items():
+            graph.add_edges_from([(src, d) for d in dest])
+
+        if node_color:
+            colors = [node_color[i] for i in list(graph)]
+            maxval = max(colors)
+            colors = list(map(lambda x: x/maxval, colors))
+            font_color = "whitesmoke"
+        else:
+            colors = ["white"]
+            font_color = "black"
+
         plt.figure(figsize=(10, 10))
-        nx.draw(self.graph, with_labels=True, node_color=["white"], node_size=1000)
-        # nx.draw(self.graph, pos=nx.spring_layout(self.graph), with_labels=True,
-        #         node_color=["white"], node_size=1000)
-        plt.savefig(f"./tests/ig/{self.filename}_old_graph.png")
+        nx.draw(graph, pos=nx.shell_layout(graph), with_labels=True, node_color=colors, node_size=300,
+                cmap=plt.cm.get_cmap("coolwarm"), font_color=font_color)
+        plt.savefig(f"./tests/ig/{filename}_graph.png")
         plt.show()
 
     def debug(self) -> None:
@@ -199,40 +197,3 @@ class InterferenceGraph:
         # print(json.dumps(self.node_cost, indent=3, default=set_default))
         # print(set(self.interference_edges.keys()).difference(set(self.node_cost.keys())))
         # print(set(self.node_cost.keys()).difference(set(self.interference_edges.keys())))
-
-    def get_adjacent_colors(self, node: int) -> set[int]:
-        adj_colors: set[int] = set()
-        for node in self.interference_edges[node]:
-            if self.node_color[node] != 0:
-                adj_colors.add(self.node_color[node])
-        return adj_colors
-
-    def color_node(self, node: int) -> int:
-        adj_colors: set[int] = self.get_adjacent_colors(node)
-        available_colors: set[int] = self.all_colors.difference(adj_colors)
-        if available_colors:
-            return min(available_colors)  # assign smallest available color
-        else:
-            new_max_val: int = max(self.all_colors) + 1
-            self.all_colors.add(new_max_val + 1)
-            return new_max_val
-
-    def color_graph(self) -> None:
-        self.get_cost_heap()
-
-        import json
-
-        def __color():
-            while self.heap:
-                node = heapq.heappop(self.heap)
-                if self.heap:
-                    __color()
-                self.node_color[node[1]] = self.color_node(node[1])
-
-        __color()
-
-        print(json.dumps(self.node_color, indent=2))
-
-    def get_cost_heap(self) -> None:
-        self.heap = [(len(value), key) for key, value in self.node_cost.items()]
-        heapq.heapify(self.heap)

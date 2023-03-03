@@ -2,6 +2,7 @@ from app.tokenizer import Tokenizer
 from app.parser.parser import Parser
 from app.error_handling import CustomSyntaxError
 from app.parser.interference_graph import InterferenceGraph
+from app.parser.register_allocation import RegisterAllocation
 from ir_viz_tool.ir_viz import IRViz
 
 # tokenizer = Tokenizer('if_then.txt')
@@ -38,11 +39,12 @@ if __name__ == '__main__':
                 parser_obj.parse_computation()
                 parser_obj.cfg._instr_graph.debug()
                 parser_obj.debug()
-                interference_graph = InterferenceGraph(cfg_map=parser_obj.cfg_map, filename=file)
-                interference_graph.create_interference_graph(set())
-                interference_graph.debug()
-                interference_graph.render_graph()
                 print(end="\n\n\n")
+
+                register_allocator = RegisterAllocation(cfg_map=parser_obj.cfg_map, filename=file)
+                register_allocator.allocate_registers()
+                register_allocator.debug()
+
                 ir_viz = IRViz(parser_obj.cfg_map, filename=file)
                 ir_viz.generate_graph()
         except CustomSyntaxError as e:
