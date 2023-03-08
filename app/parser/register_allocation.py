@@ -354,7 +354,7 @@ class RegisterAllocation:
             print(f"Max reg for {id}: {max(self.node_color_map[id].values())}")
 
     def write_to_file(self) -> None:
-        with open(f'./tests/reg_alloc/{self.filename}.txt', "a") as f:
+        with open(f'./tests/reg_alloc/{self.filename}.txt', "a+") as f:
             for idx, reg_cfg in self.reg_cfg_map.items():
                 cfg_name: str = "main" if idx == 0 else Tokenizer.id2string(idx)
                 f.write(f"{cfg_name}_cfg:\n")
