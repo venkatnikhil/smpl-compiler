@@ -26,7 +26,14 @@ class InterferenceGraph:
         self.old_ig = {}
         self.node_cost: dict[int, set[int]] = defaultdict(set)
 
+    def filter_param_instrs(self):
+        for instr_num in self.cfg.const_bb.get_instr_list():
+            instr: InstrNodeActual = self.cfg.get_instr(instr_num)
+            if instr.opcode == OpCodeEnum.PARAM.value:
+                self.const_bb_instr.remove(instr_num)
+
     def create_interference_graph(self, bb: Optional[BB] = None) -> None:
+        self.filter_param_instrs()
         self.build_basic_interference_graph(set(), bb)
         print('starting interference graph', self.interference_edges)
         self.old_ig = deepcopy(self.interference_edges)
@@ -139,8 +146,9 @@ class InterferenceGraph:
 
             if instr.opcode in RELOP_TOKEN_OPCODE.values() or (isinstance(instr, SingleOpInstrNode) and
                                                                instr.opcode != OpCodeEnum.CALL.value):
-                live_set.add(instr.left)
-                self.node_cost[instr.left].add(instr_num)
+                if instr.left not in self.const_bb_instr:
+                    live_set.add(instr.left)
+                    self.node_cost[instr.left].add(instr_num)
             elif instr.opcode == OpCodeEnum.PHI.value:
                 continue
             elif isinstance(instr, OpInstrNode):

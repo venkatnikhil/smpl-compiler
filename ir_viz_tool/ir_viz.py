@@ -58,7 +58,8 @@ class IRViz:
                 else:
                     instr_num = instr.right
             if instr_num == bb_first_instr_num:
-                self.sub_graph.edge(f"{self.key}BB{pred}:s", f"{self.key}BB{bb.bb_num}:n", color=colors[c % 3], label="br", style="bold")
+                self.sub_graph.edge(f"{self.key}BB{pred}:s", f"{self.key}BB{bb.bb_num}:n", color=colors[c % 3],
+                                    label="br", style="bold")
             else:
                 self.sub_graph.edge(f"{self.key}BB{pred}:s", f"{self.key}BB{bb.bb_num}:n", color=colors[c % 3])
 

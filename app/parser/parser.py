@@ -126,7 +126,7 @@ class Parser:
         self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.END.value)
         for _, cur_cfg in self.cfg_map.items():
             cur_cfg.clean_instr(visited_set=set())
-            cur_cfg.update_branch_instrs(set())
+            # cur_cfg.update_branch_instrs(set())
 
     def parse_type_decl(self) -> Optional[list[int]]:
         if self.sym == TokenEnum.VAR.value:
