@@ -128,6 +128,10 @@ class Parser:
             cur_cfg.clean_instr(visited_set=set())
             # cur_cfg.update_branch_instrs(set())
 
+    def update_branch_instr(self) -> None:
+        for _, cur_cfg in self.cfg_map.items():
+            cur_cfg.update_branch_instrs(set())
+
     def parse_type_decl(self) -> Optional[list[int]]:
         if self.sym == TokenEnum.VAR.value:
             self.__next_token()

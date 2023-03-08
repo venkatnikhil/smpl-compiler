@@ -45,6 +45,8 @@ if __name__ == '__main__':
                 register_allocator.allocate_registers()
                 register_allocator.debug()
 
+                parser_obj.update_branch_instr()
+
                 ir_viz = IRViz(parser_obj.cfg_map, filename=file)
                 ir_viz.generate_graph()
         except CustomSyntaxError as e:

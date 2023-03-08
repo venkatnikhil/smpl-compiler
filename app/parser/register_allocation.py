@@ -248,7 +248,7 @@ class RegisterAllocation:
                 if isinstance(instr, OpInstrNode):
                     right = self.get_register_node(instr.right)
 
-                if instr.opcode == OpCodeEnum.PHI.value:
+                if instr.opcode == OpCodeEnum.PHI.value and node != "R0":
                     if node != left:
                         left_phi.append(f"move {node} <- {left}")
                     if node != right:
@@ -263,8 +263,10 @@ class RegisterAllocation:
                     branch_instrs.append(f"{instr.opcode} {left} {right}")
                     continue
 
-            if instr.opcode in {OpCodeEnum.RETURN.value, OpCodeEnum.STORE.value, OpCodeEnum.WRITE.value}:
+            if instr.opcode in {OpCodeEnum.RETURN.value, OpCodeEnum.WRITE.value}:
                 reg_instr_list.append(f"{instr.opcode} {left}")
+            elif instr.opcode == OpCodeEnum.STORE.value:
+                reg_instr_list.append(f"{instr.opcode} {left} {right}")
             else:
                 reg_instr_list.append(self.instr_fmt.format(
                     l_reg=node,
