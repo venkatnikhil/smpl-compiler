@@ -145,18 +145,19 @@ class RegisterAllocation:
                     new_instrs.append(f"move R{func_reg + 1} <- {{func_return}}")
                     new_instrs.append(f"bra {Tokenizer.id2string(int(instr_vals[3]))}")
 
-                    # restore registers
-                    reg: int = max(func_reg + 1, max_reg) + 1
-                    for after_instr in moves_after_call:
-                        new_instrs.append(after_instr.format(reg=reg))
-                        reg += 1
-                    for after_instr in range(1, func_reg + 2):
-                        new_instrs.append(f"move R{after_instr} <- R{reg}")
-                        reg += 1
-
                     # assign returned values to register
                     if instr_vals[0] != "R0" and instr_vals[0] != "R1":
                         new_instrs.append(f"move {instr_vals[0]} <- R1")
+
+                    # restore registers
+                    reg: int = max(func_reg + 1, max_reg) + 1
+                    # for after_instr in moves_after_call:
+                    #     new_instrs.append(after_instr.format(reg=reg))
+                    #     reg += 1
+                    for after_instr in range(1, func_reg + 2):
+                        if f"R{after_instr}" != instr_vals[0]:
+                            new_instrs.append(f"move R{after_instr} <- R{reg}")
+                        reg += 1
 
                     idx_instr_map[idx] = new_instrs
                     moves_after_call = []
