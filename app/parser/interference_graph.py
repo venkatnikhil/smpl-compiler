@@ -131,7 +131,8 @@ class InterferenceGraph:
                 self.dead_code.add(instr_num)
                 continue
 
-            if isinstance(instr, ZeroOpInstrNode) or instr.opcode == OpCodeEnum.BRA.value:
+            if (isinstance(instr, ZeroOpInstrNode) and instr.opcode != OpCodeEnum.READ.value) or \
+                    instr.opcode == OpCodeEnum.BRA.value:
                 live_set.discard(instr_num)
                 continue
 
