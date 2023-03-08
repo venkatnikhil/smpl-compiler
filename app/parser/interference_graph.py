@@ -60,6 +60,9 @@ class InterferenceGraph:
             elif cluster[2] in self.interference_edges and self.check_for_interference(cluster[0], cluster[2]):
                 cur_coalesce.append(cluster[2])
 
+            elif cluster[1] in self.interference_edges and self.check_for_interference(cluster[0], cluster[1]):
+                cur_coalesce.append(cluster[1])
+
             if len(cur_coalesce) > 1:
                 self.coalesce_nodes(cur_coalesce)
 
