@@ -1,0 +1,25 @@
+main var a, b, c; {
+    let b <- 1;
+    if a < 1
+    then
+        let a <- b;
+        let c <- 10 * 1 / 3;
+    else
+        let a <- b;
+        let c <- 10 * 1 / 3;
+    fi;
+
+    let a <- b;
+    let c <- 10 * 1 / 3;
+
+    if a < 1
+    then
+        let a <- b;
+        let c <- 10 * 1 / 3;
+    else
+        let a <- b;
+        let c <- 10 * 1 / 3;
+    fi;
+}.
+
+-- JOIN INSTRS CAUSE PHIS TO BE DELETED, LEAVING BB'S EMPTY (NO EMPTY INSTR EITHER!!!!)
