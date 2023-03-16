@@ -15,13 +15,14 @@ BR_INSTRS = set(RELOP_TOKEN_OPCODE.values()).union({OpCodeEnum.BRA.value})
 
 
 class IRViz:
-    def __init__(self, cfg_map: dict[int, CFG], filename: str = None) -> None:
+    def __init__(self, cfg_map: dict[int, CFG], reg_cfg_map: dict[int, dict[int, list[str]]], filename: str = None) -> None:
         self.cfg_map: dict[int, CFG] = cfg_map
         self.cfg: CFG
         self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG", graph_attr={"ranksep": "0.75", "nodesep": "0.5"})
         self.filename: str = "graph" if filename is None else filename
         self.dir: str = "./tests/ir"
         self.call_instrs: dict[str, str] = dict()
+        self.reg_cfg_map = reg_cfg_map
 
     def get_bb_instrs(self, bb: BB) -> str:
         instr_str: str = ""
@@ -82,10 +83,18 @@ class IRViz:
             return ""
         return f"top: {list(bb.top_live)} | bot: {list(bb.bot_live)}"
 
+    def get_reg_instrs(self, bb_num: int) -> str:
+        repl = "\<-"
+        instr_str: str = ""
+        for instr in self.reg_cfg[bb_num]:
+            instr_str += f"{instr.replace('<-', repl)} | "
+
+        return instr_str[:-2]
+
     def generate_basic_blocks(self) -> None:
         def __create_basic_block(shape: str = "record") -> None:
             nonlocal name, label, var_instr_map, live_range
-            label = f"<b>{name} | {{{label}}} | {{{var_instr_map}}} | {{{live_range}}}"
+            label = f"<b>{name} | {{{label}}} | {{{var_instr_map}}} | {{{live_range}}} | {{{reg_instrs}}}"
             self.sub_graph.node(name=name, label=label, shape=shape, ordering="out")
 
         for bb in self.cfg.get_bb_map():
@@ -93,6 +102,7 @@ class IRViz:
             name: str = f"{self.key}BB{bb.bb_num}"
             var_instr_map: str = self.fmt_var_instr_map(bb)
             live_range: str = self.get_live_range(bb)
+            reg_instrs: str = self.get_reg_instrs(bb.bb_num)
             __create_basic_block()
             self.add_dom_edge(bb)
             self.add_pred_edge(bb)
@@ -104,6 +114,7 @@ class IRViz:
     def generate_graph(self) -> None:
         for key, cfg in self.cfg_map.items():
             self.cfg = cfg
+            self.reg_cfg = self.reg_cfg_map[key]
             self.key = f"{Tokenizer.id2string(key)}_" if key != 0 else ""
             with self.graph.subgraph(name=f"cluster_{self.key}") as self.sub_graph:
                 self.sub_graph.attr(label=self.key[:-1] if self.key else "main")
