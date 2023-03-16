@@ -35,8 +35,8 @@ class RegisterAllocation:
             self.color_graph()
 
             # TODO: uncomment these
-            self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(id)}", debug=False, node_color=self.node_color)
-            self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(id)}_old", debug=True)
+            self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(cfg_id)}", debug=False, node_color=self.node_color)
+            self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(cfg_id)}_old", debug=True)
 
             self.reg_cfg_map[cfg_id] = OrderedDict()
             self.allocate(self.reg_cfg_map[cfg_id], set(), list())
