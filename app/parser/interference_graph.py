@@ -48,6 +48,9 @@ class InterferenceGraph:
     def coalesce_phi(self) -> None:
         cluster_set: list[list[int]] = self.get_clusters()
         for cluster in cluster_set:
+            if cluster[0] not in self.interference_edges:
+                continue
+
             cur_coalesce = [cluster[0]]
             if cluster[1] in self.interference_edges \
                     and self.check_for_interference(cluster[0], cluster[1])\
