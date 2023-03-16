@@ -105,7 +105,7 @@ class InterferenceGraph:
         live_range = self.calculate_top_and_bot(bb)
 
         # return if live_range already calculated
-        if bb.top_live is not None and live_range == bb.top_live:
+        if bb.top_live is not None and live_range == bb.top_live and not bb.phi_live[0] and not bb.phi_live[1]:
             return
 
         # update the top_live of the bb
@@ -117,7 +117,8 @@ class InterferenceGraph:
             updated_live: set[int] = live_range.union(bb.phi_live[i])
             parent_bb:BB = self.cfg.get_bb_from_bb_num(pred_bb[i])
             # if parent_bb != self.cfg.const_bb:
-            self.build_basic_interference_graph(updated_live, parent_bb)
+            if parent_bb.bot_live is None or parent_bb.bot_live != updated_live:
+                self.build_basic_interference_graph(updated_live, parent_bb)
 
     def calculate_top_and_bot(self, bb: BB) -> set[int]:
         live_set: set[int] = deepcopy(bb.bot_live)
