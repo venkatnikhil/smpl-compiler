@@ -147,9 +147,13 @@ class InterferenceGraph:
             if instr.opcode == OpCodeEnum.PHI.value:
                 if instr.left not in self.const_bb_instr:
                     bb.phi_live[0].add(instr.left)
+                    if instr.left in self.dead_code:
+                        self.dead_code.remove(instr.left)
                     self.node_cost[instr.left].add(instr_num)
                 if instr.right not in self.const_bb_instr:
                     bb.phi_live[1].add(instr.right)
+                    if instr.right in self.dead_code:
+                        self.dead_code.remove(instr.right)
                     self.node_cost[instr.right].add(instr_num)
 
             if instr_num in live_set:
@@ -160,15 +164,21 @@ class InterferenceGraph:
                                                                instr.opcode != OpCodeEnum.CALL.value):
                 if instr.left not in self.const_bb_instr:
                     live_set.add(instr.left)
+                    if instr.left in self.dead_code:
+                        self.dead_code.remove(instr.left)
                     self.node_cost[instr.left].add(instr_num)
             elif instr.opcode == OpCodeEnum.PHI.value:
                 continue
             elif isinstance(instr, OpInstrNode):
                 if instr.left not in self.const_bb_instr:
                     live_set.add(instr.left)
+                    if instr.left in self.dead_code:
+                        self.dead_code.remove(instr.left)
                     self.node_cost[instr.left].add(instr_num)
                 if instr.right not in self.const_bb_instr:
                     live_set.add(instr.right)
+                    if instr.right in self.dead_code:
+                        self.dead_code.remove(instr.right)
                     self.node_cost[instr.right].add(instr_num)
 
         return live_set
@@ -213,7 +223,7 @@ class InterferenceGraph:
                 return list(obj)
 
         print(self.interference_edges)
-        print(self.dead_code)
+        print('dead_code:', self.dead_code)
         # print(json.dumps(self.node_cost, indent=3, default=set_default))
         # print(set(self.interference_edges.keys()).difference(set(self.node_cost.keys())))
         # print(set(self.node_cost.keys()).difference(set(self.interference_edges.keys())))

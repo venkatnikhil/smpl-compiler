@@ -256,8 +256,10 @@ class RegisterAllocation:
                 if instr.opcode == OpCodeEnum.PHI.value and node != "R0":
                     if node != left:
                         left_phi.append(f"move {node} <- {left}")
+                        print(f"BB{bb.bb_num}_left: {instr_num}: {left_phi[-1]}")
                     if node != right:
                         right_phi.append(f"move {node} <- {right}")
+                        print(f"BB{bb.bb_num}_right: {instr_num}: {right_phi[-1]}")
                     continue
 
                 if instr.opcode == OpCodeEnum.BRA.value or instr.opcode in set(RELOP_TOKEN_OPCODE.values()):
@@ -281,7 +283,7 @@ class RegisterAllocation:
                 ))
 
         if phi_list:
-            print(phi_list)
+            print(f'moves for BB {bb.bb_num}', phi_list)
         for phi_instr in phi_list:
             reg_instr_list.append(phi_instr)
 
