@@ -27,40 +27,41 @@ class RegisterAllocation:
         self.reg_cfg_map: OrderedDict[int, OrderedDict[int, list[str]]] = OrderedDict()
 
     def allocate_registers(self) -> None:
-        for id, cur_cfg in self.cfg_map.items():
+        for cfg_id, cur_cfg in self.cfg_map.items():
             self.node_color: dict[int, int] = defaultdict(int)
             self.cfg = cur_cfg
             self.interference_graph: InterferenceGraph = InterferenceGraph(self.cfg)
             self.interference_graph.create_interference_graph()
-            # self.cfg.update_branch_instrs(self.interference_graph.dead_code)
             self.color_graph()
+
             # TODO: uncomment these
             self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(id)}", debug=False, node_color=self.node_color)
             self.interference_graph.render_graph(filename=f"{self.filename}_{Tokenizer.id2string(id)}_old", debug=True)
 
-            self.reg_cfg_map[id] = OrderedDict()
-            self.allocate(self.reg_cfg_map[id], set(), list())
-            self.node_color_map[id] = deepcopy(self.node_color)
-            self.resolve_return(self.reg_cfg_map[id], max(self.node_color.values()))
+            self.reg_cfg_map[cfg_id] = OrderedDict()
+            self.allocate(self.reg_cfg_map[cfg_id], set(), list())
+            self.node_color_map[cfg_id] = deepcopy(self.node_color)
+            self.resolve_return(self.reg_cfg_map[cfg_id], max(self.node_color.values()))
 
-        for id, cur_cfg in self.cfg_map.items():
+        for cfg_id, cur_cfg in self.cfg_map.items():
             self.cfg = cur_cfg
-            self.resolve_calls(self.reg_cfg_map[id], max(self.node_color_map[id].values()))
+            self.resolve_calls(self.reg_cfg_map[cfg_id], max(self.node_color_map[cfg_id].values()))
 
         self.instr_num: int = 1
-        for id, cfg in self.reg_cfg_map.items():
+        for cfg_id, cfg in self.reg_cfg_map.items():
             for bb_num in range(len(cfg)):
                 self.number_instrs(cfg[bb_num])
 
-        for id, cfg in self.reg_cfg_map.items():
-            self.cfg = self.cfg_map[id]
+        for cfg_id, cfg in self.reg_cfg_map.items():
+            self.cfg = self.cfg_map[cfg_id]
             self.cur_reg_cfg = cfg
-            for bb_num in range(len(cfg)):
-                self.update_branch_instr(cfg[bb_num])
+
+            for bb_num in self.cfg.reg_traverse:
+                self.update_branch_instr(cfg[bb_num], cfg_id)
 
         self.write_to_file()
 
-    def update_branch_instr(self, instr_list: list[str]) -> None:
+    def update_branch_instr(self, instr_list: list[str], cfg_id: int) -> None:
 
         for i in range(len(instr_list)):
             instr = instr_list[i].strip().split()
@@ -83,6 +84,9 @@ class RegisterAllocation:
                     self.cur_reg_cfg = parent_reg_cfg
                     instr_list[i] = " ".join(instr)
                     instr_list[i - 1] = instr_list[i - 1].format(func_return=('#' + str(int(instr[0].rstrip(':')) + 1)))
+                elif cfg_id == 0 and instr[2].startswith('R'):
+                    instr[2] = self.cur_reg_cfg[self.cfg.reg_traverse[-1]][-1].split()[0].rstrip(':')
+                    instr_list[i] = " ".join(instr)
 
     def get_reg_instr_num(self, bb_num: int):
         if len(self.cur_reg_cfg[bb_num]) > 0:
@@ -361,7 +365,7 @@ class RegisterAllocation:
             for idx, reg_cfg in self.reg_cfg_map.items():
                 cfg_name: str = "main" if idx == 0 else Tokenizer.id2string(idx)
                 f.write(f"{cfg_name}_cfg:\n")
-                for bb_num in range(len(reg_cfg)):
+                for bb_num in self.cfg_map[idx].reg_traverse:
                     f.write(f"{cfg_name}_BB{bb_num}:\n")
                     for instr in reg_cfg[bb_num]:
                         f.write(f"\t{instr}\n")

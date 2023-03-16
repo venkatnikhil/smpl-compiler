@@ -1,0 +1,22 @@
+main var a,b; {
+    let a <- call InputNum();
+    while b < 2 do
+        let a <- a + 1;
+        let a <- a + 2;
+    od;
+
+}.
+
+call OutputNum(a);
+
+main var a,b; {
+    let a <- call InputNum();
+    if a < 2 then
+        let a <- a + 1;
+        let a <- a + 2;
+    else
+        call OutputNum(1);
+    fi;
+}.
+
+call OutputNum(a);

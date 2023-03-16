@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 
 
 class InterferenceGraph:
-    live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value, OpCodeEnum.PHI.value,
+    live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value,
+                                         # OpCodeEnum.PHI.value,
                                          OpCodeEnum.BRA.value, OpCodeEnum.PARAM.value, OpCodeEnum.RETURN.value,
                                          OpCodeEnum.END.value, OpCodeEnum.STORE.value, OpCodeEnum.CALL.value}\
         .union(set(RELOP_TOKEN_OPCODE.values()))
@@ -128,6 +129,9 @@ class InterferenceGraph:
                 continue
 
             if instr_num not in live_set and instr.opcode not in self.live_not_exclude:
+                self.dead_code.add(instr_num)
+                continue
+            elif instr.opcode == OpCodeEnum.STORE.value and instr.left not in live_set:
                 self.dead_code.add(instr_num)
                 continue
 

@@ -123,7 +123,7 @@ class Parser:
         self.__check_token(TokenEnum.END.value)
         self.__check_token(TokenEnum.PERIOD.value)
         # TODO: uncomment this
-        # self.__check_token(TokenEnum.EOF.value)
+        self.__check_token(TokenEnum.EOF.value)
         self.cfg.build_instr_node(ZeroOpInstrNode, OpCodeEnum.END.value)
         for _, cur_cfg in self.cfg_map.items():
             cur_cfg.clean_instr(visited_set=set())
@@ -318,6 +318,9 @@ class Parser:
         else_bb: int = self.cfg.create_bb([if_bb])
         join_bb: int = self.cfg.create_bb([])
 
+        # add then_bb to traverse path
+        self.cfg.add_traverse_node(then_bb)
+
         # updating phi_scope before start of if
         self.cfg.add_phi_scope(join_bb, TokenEnum.IF.value)
 
@@ -327,6 +330,9 @@ class Parser:
         self.parse_stat_sequence()
         l_parent: int = self.cfg.curr_bb.bb_num
         self.cfg.update_successors(l_parent, [join_bb])
+
+        # add else_bb to traverse path
+        self.cfg.add_traverse_node(else_bb)
 
         # creating else block instructions
         self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(else_bb)
@@ -338,6 +344,9 @@ class Parser:
 
         # updating the branch instruction from if relation to start of else
         self.cfg.update_instr(br_instr, {"right": else_bb})
+
+        # add join_bb to traverse path
+        self.cfg.add_traverse_node(join_bb)
 
         # creating join block instructions
         self.__check_token(TokenEnum.FI.value)
@@ -364,9 +373,15 @@ class Parser:
         # updating phi_scope before start of while
         self.cfg.add_phi_scope(while_bb, TokenEnum.WHILE.value)
 
+        # add while_bb to traverse path
+        self.cfg.add_traverse_node(while_bb)
+
         # creating while block instructions
         self.cfg.curr_bb = self.cfg.get_bb_from_bb_num(while_bb)
         br_instr: int = self.parse_relation()
+
+        # add do_bb to traverse path
+        self.cfg.add_traverse_node(do_bb)
 
         # creating do block instructions
         self.__check_token(TokenEnum.DO.value)
@@ -380,6 +395,9 @@ class Parser:
 
         # updating phi scope at the end of while
         self.cfg.remove_phi_scope()
+
+        # add follow_bb to traverse path
+        self.cfg.add_traverse_node(follow_bb)
 
         # end while parsing
         self.__check_token(TokenEnum.OD.value)

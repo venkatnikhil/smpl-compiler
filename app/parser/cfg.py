@@ -26,8 +26,12 @@ class CFG:
         self._cleanup_list: set[OpCodeEnum] = {OpCodeEnum.KILL.value}
         self._phi_scope: list[tuple[int, TokenEnum]] = list()
         self.arr_map: dict[int, list[Union[int, list[int]]]] = dict()
+        self.reg_traverse: list[int] = [0, 1]
 
         self.__initialize_cfg()
+
+    def add_traverse_node(self, bb_num) -> None:
+        self.reg_traverse.append(bb_num)
 
     def add_phi_scope(self, bb_num: int, bb_type: TokenEnum) -> None:
         self._phi_scope.append((bb_num, bb_type))
