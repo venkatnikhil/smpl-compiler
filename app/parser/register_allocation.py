@@ -25,6 +25,7 @@ class RegisterAllocation:
         self.cfg_ig_map: dict[int, InterferenceGraph] = dict()
         self.filename: str = os.path.splitext(filename)[0]
         self.reg_cfg_map: OrderedDict[int, OrderedDict[int, list[str]]] = OrderedDict()
+        self.dead_code_map: dict[int, set[int]] = dict()
 
     def allocate_registers(self) -> None:
         for cfg_id, cur_cfg in self.cfg_map.items():
@@ -32,6 +33,7 @@ class RegisterAllocation:
             self.cfg = cur_cfg
             self.interference_graph: InterferenceGraph = InterferenceGraph(self.cfg)
             self.interference_graph.create_interference_graph()
+            self.dead_code_map[cfg_id] = self.interference_graph.dead_code
             self.color_graph()
 
             # TODO: uncomment these

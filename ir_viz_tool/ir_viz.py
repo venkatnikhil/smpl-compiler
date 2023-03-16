@@ -15,7 +15,8 @@ BR_INSTRS = set(RELOP_TOKEN_OPCODE.values()).union({OpCodeEnum.BRA.value})
 
 
 class IRViz:
-    def __init__(self, cfg_map: dict[int, CFG], reg_cfg_map: dict[int, dict[int, list[str]]], filename: str = None) -> None:
+    def __init__(self, cfg_map: dict[int, CFG], reg_cfg_map: dict[int, dict[int, list[str]]],
+                 dead_code_map: dict[int, set[int]], filename: str = None) -> None:
         self.cfg_map: dict[int, CFG] = cfg_map
         self.cfg: CFG
         self.graph: graphviz.Digraph = graphviz.Digraph(name="CFG", graph_attr={"ranksep": "0.75", "nodesep": "0.5"})
@@ -23,13 +24,20 @@ class IRViz:
         self.dir: str = "./tests/ir"
         self.call_instrs: dict[str, str] = dict()
         self.reg_cfg_map = reg_cfg_map
+        self.dead_code_map = dead_code_map
 
     def get_bb_instrs(self, bb: BB) -> str:
+        def strike(text: str) -> str:
+            return ''.join([u'\u0336{}'.format(c) for c in text])
+
         instr_str: str = ""
         for instr in bb.get_instr_list():
             actual_instr: InstrNodeActual = self.cfg.get_instr(instr)
             if actual_instr.opcode != OpCodeEnum.CALL.value:
-                instr_str += f"{str(actual_instr)} | "
+                if instr in self.dead_code:
+                    instr_str += f"{strike(str(actual_instr))} | "
+                else:
+                    instr_str += f"{str(actual_instr)} | "
             else:
                 instr_str += f"<{actual_instr.instr_num}>{str(actual_instr)} | "
                 self.call_instrs[f"{self.key}BB{bb.bb_num}:{actual_instr.instr_num}"] = \
@@ -115,6 +123,7 @@ class IRViz:
         for key, cfg in self.cfg_map.items():
             self.cfg = cfg
             self.reg_cfg = self.reg_cfg_map[key]
+            self.dead_code = self.dead_code_map[key]
             self.key = f"{Tokenizer.id2string(key)}_" if key != 0 else ""
             with self.graph.subgraph(name=f"cluster_{self.key}") as self.sub_graph:
                 self.sub_graph.attr(label=self.key[:-1] if self.key else "main")
