@@ -44,7 +44,7 @@ class RegisterAllocation:
             self.allocate(self.reg_cfg_map[cfg_id], set(), list())
             self.node_color_map[cfg_id] = deepcopy(self.node_color)
             self.resolve_return(self.reg_cfg_map[cfg_id], max(self.node_color.values()))
-
+        #
         for cfg_id, cur_cfg in self.cfg_map.items():
             self.cfg = cur_cfg
             self.cur_reg_cfg = self.reg_cfg_map[cfg_id]
@@ -104,7 +104,7 @@ class RegisterAllocation:
     def number_instrs(self, instr_list: list[str]) -> None:
         instr_to_remove: list[int] = []
         for i in range(len(instr_list)):
-            if instr_list[i].startswith("R0"):
+            if instr_list[i].startswith("R0") and instr_list[i].strip().split()[2] != OpCodeEnum.READ.value:
                 instr_to_remove.append(i)
             else:
                 instr_list[i] = f"{self.instr_num}: {instr_list[i]}"
@@ -159,7 +159,7 @@ class RegisterAllocation:
                         param_instr_vals = param_instr.strip().split()
                         param_instr_vals[3] = 'R' + str(int(param_instr_vals[3].lstrip('R')) + reg - 1)
                         new_instrs.append(' '.join(param_instr_vals))
-                        
+
                     new_instrs.append(f"move R{func_reg + 1} <- {{func_return}}")
                     new_instrs.append(f"bra {Tokenizer.id2string(int(instr_vals[3]))}")
 
