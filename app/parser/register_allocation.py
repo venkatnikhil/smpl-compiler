@@ -47,17 +47,22 @@ class RegisterAllocation:
 
         for cfg_id, cur_cfg in self.cfg_map.items():
             self.cfg = cur_cfg
+            self.cur_reg_cfg = self.reg_cfg_map[cfg_id]
+            self.node_color = self.node_color_map[cfg_id]
             self.resolve_calls(self.reg_cfg_map[cfg_id], max(self.node_color_map[cfg_id].values()))
 
         self.instr_num: int = 1
         for cfg_id, cfg in self.reg_cfg_map.items():
+            self.cfg = self.cfg_map[cfg_id]
+            self.cur_reg_cfg = cfg
+            self.node_color = self.node_color_map[cfg_id]
             for bb_num in self.cfg.reg_traverse:
                 self.number_instrs(cfg[bb_num])
 
         for cfg_id, cfg in self.reg_cfg_map.items():
             self.cfg = self.cfg_map[cfg_id]
             self.cur_reg_cfg = cfg
-
+            self.node_color = self.node_color_map[cfg_id]
             for bb_num in self.cfg.reg_traverse:
                 self.update_branch_instr(cfg[bb_num], cfg_id)
 
@@ -147,7 +152,14 @@ class RegisterAllocation:
                         reg += 1
 
                     # assign param vals to registers
-                    new_instrs.extend(moves_before_call_param)
+                    func_reg: int = max(self.node_color_map[int(instr_vals[3])].values())
+                    reg: int = max(func_reg + 1, max_reg) + 1
+                    # new_instrs.extend(moves_before_call_param)
+                    for param_instr in moves_before_call_param:
+                        param_instr_vals = param_instr.strip().split()
+                        param_instr_vals[3] = 'R' + str(int(param_instr_vals[3].lstrip('R')) + reg - 1)
+                        new_instrs.append(' '.join(param_instr_vals))
+                        
                     new_instrs.append(f"move R{func_reg + 1} <- {{func_return}}")
                     new_instrs.append(f"bra {Tokenizer.id2string(int(instr_vals[3]))}")
 
@@ -168,6 +180,7 @@ class RegisterAllocation:
                     idx_instr_map[idx] = new_instrs
                     moves_after_call = []
                     moves_before_call = []
+                    moves_before_call_param = []
                 elif len(instr_vals) > 3 and instr_vals[2] == 'param':
                     color = self.node_color[int(instr_vals[3])]
                     # get register num or const val
