@@ -15,6 +15,7 @@ class InterferenceGraph:
     live_not_exclude: set[OpCodeEnum] = {OpCodeEnum.WRITE.value, OpCodeEnum.WRITE_NL.value,
                                          # OpCodeEnum.PHI.value,
                                          OpCodeEnum.BRA.value, OpCodeEnum.PARAM.value, OpCodeEnum.RETURN.value,
+                                         OpCodeEnum.READ.value,
                                          OpCodeEnum.END.value, OpCodeEnum.STORE.value, OpCodeEnum.CALL.value}\
         .union(set(RELOP_TOKEN_OPCODE.values()))
 
