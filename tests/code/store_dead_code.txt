@@ -1,0 +1,16 @@
+main
+var a, b, i, j;
+array[4] x;
+{
+    let a <- call InputNum ();
+    let b <- a;
+    let i <- 0;
+    let j <- i;
+    let x[a] <- b + 2;
+    if b<= 2 then
+        let x[b] <- x[a] + 2
+    else
+        let b <- x[a] + 2
+    fi;
+    call OutputNum(x[b])
+}.

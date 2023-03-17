@@ -135,9 +135,6 @@ class InterferenceGraph:
             if instr_num not in live_set and instr.opcode not in self.live_not_exclude:
                 self.dead_code.add(instr_num)
                 continue
-            elif instr.opcode == OpCodeEnum.STORE.value and instr.left not in live_set:
-                self.dead_code.add(instr_num)
-                continue
 
             if (isinstance(instr, ZeroOpInstrNode) and instr.opcode != OpCodeEnum.READ.value) or \
                     instr.opcode == OpCodeEnum.BRA.value:
