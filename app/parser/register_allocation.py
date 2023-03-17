@@ -51,7 +51,7 @@ class RegisterAllocation:
 
         self.instr_num: int = 1
         for cfg_id, cfg in self.reg_cfg_map.items():
-            for bb_num in range(len(cfg)):
+            for bb_num in self.cfg.reg_traverse:
                 self.number_instrs(cfg[bb_num])
 
         for cfg_id, cfg in self.reg_cfg_map.items():
