@@ -127,7 +127,7 @@ class OpCodeEnum(Enum):
     READ = "read"
     WRITE = "write"
     WRITE_NL = "writeNL"
-    EMPTY = "<empty>"
+    EMPTY = "%empty%"
     KILL = "kill"
     PARAM = "param"
     CALL = "call"
