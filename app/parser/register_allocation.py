@@ -157,7 +157,10 @@ class RegisterAllocation:
                     # new_instrs.extend(moves_before_call_param)
                     for param_instr in moves_before_call_param:
                         param_instr_vals = param_instr.strip().split()
-                        param_instr_vals[3] = 'R' + str(int(param_instr_vals[3].lstrip('R')) + reg - 1)
+                        if param_instr_vals[3].startswith('R'):
+                            param_instr_vals[3] = 'R' + str(int(param_instr_vals[3].lstrip('R')) + reg - 1)
+                        # else:
+                        #     param_instr_vals[3] = 'R' + str(int(param_instr_vals[3].lstrip('R')) + reg - 1)
                         new_instrs.append(' '.join(param_instr_vals))
 
                     new_instrs.append(f"move R{func_reg + 1} <- {{func_return}}")
